@@ -1,0 +1,8 @@
+{:colors   {:blue  "blue"
+            :brown "brown"
+            :green "green"}
+ :dob      "1984-12-06"
+ :wi-goals [{:age 40 :wi 2 :color :blue}]
+ :year-goals [{:year 2017
+               :goals [{:percentage 26 :color :blue}
+                       {:percentage 20 :color :green}]}]}
