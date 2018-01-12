@@ -20,9 +20,9 @@
 
 (s/def ::salary-amount u/gt-zero?)
 
-(s/def ::salary (s/keys :req-un [::source
-                                 ::date
-                                 ::salary-amount]))
+(s/def :d/salary (s/keys :req-un [::source
+                                  ::date
+                                  ::salary-amount]))
 
 ;; Events
 

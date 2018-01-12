@@ -12,10 +12,13 @@
                  [org.clojure/clojurescript "1.9.946"]
                  [org.clojure/core.async  "0.3.443"]
                  [slingshot "0.12.2"]
-                 [expound "0.4.0"]]
+                 [expound "0.4.0"]
+                 [org.clojure/tools.cli "0.3.5"]]
 
   :plugins [[lein-figwheel "0.5.14"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
+
+  :main bucks.bootstrap
 
   :source-paths ["src"]
 

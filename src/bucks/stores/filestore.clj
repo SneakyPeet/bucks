@@ -1,4 +1,4 @@
-(ns bucks.events-stores.file-store
+(ns bucks.stores.filestore
   (:require [bucks.core :refer :all]
             [clojure.java.io :as io]))
 

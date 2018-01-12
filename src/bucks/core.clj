@@ -18,8 +18,8 @@
 
 (defn guard [spec data]
   (when-not (s/valid? spec data)
-    (throw+ [:validation-error (expound/expound-str spec data)])))
+    (throw+ {:type :validation-error :error (expound/expound-str spec data)})))
 
 
 (defn throw-app-error [error]
-  (throw+ [:app-error error]))
+  (throw+ {:type :app-error :error error}))
