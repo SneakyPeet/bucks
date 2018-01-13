@@ -1,31 +1,13 @@
 (ns bucks.ui.cli
   (:require [bucks.commands :as c]
+            [bucks.utils :as u]
             [clojure.pprint :as pprint]
-            [clojure.tools.cli :as cli]
             [clojure.string :as string]
-            [slingshot.slingshot :refer [try+]]
-            [bucks.utils :as u]))
-
-
-(def source-opt
-  ["-s" "--source SOURCE" "Source name"
-   :default ""
-   :validate [#(u/not-empty-string %) "Source name required"]])
-
-
-(def date-opt
-  ["-d" "--date DATE" "Date"
-   :default ""
-   :validate [u/not-empty-string "Date required"]])
-
-
-(def salary-amount-opt
-  ["-a" "--salary-amount SALARY-AMOUNT" "Monthly Salary (Before Tax)"
-   :default 0
-   :parse-fn #(Integer/parseInt %)])
-
+            [commandline.core :as cli-a]
+            [slingshot.slingshot :refer [try+]]))
 
 (defn pre [] (print "bucks> ") (flush))
+
 
 (defn print-err [err]
   (cond
@@ -33,45 +15,67 @@
     (coll? err) (doseq [e err] (println e))
     :else err))
 
-(defn get-dispatch [dispatch-command]
-  (fn [f & cli-options]
-    (fn [args]
-      (let [{:keys [options errors] :as a} (cli/parse-opts args cli-options)]
-        (if (not-empty errors)
-          (print-err errors)
-          (try+
-           (dispatch-command (f options))
-           (catch [:type :validation-error] {:keys [error]}
-             (print-err error))
-           (catch [:type :app-error] {:keys [error]}
-             (print-err "AN APP ERROR HAS OCCURED")
-             (print-err error))))))))
-
-
-(def cli-config
-  {:salary [c/change-salary source-opt date-opt salary-amount-opt]})
-
 
 (defn parse-input [s]
-  (let [args (string/split s #" ")]
-    {:f (keyword (first args))
+  (let [args (filter not-empty (string/split s #"\s+"))]
+    {:f-key (first args)
      :args (rest args)}))
 
+(defn fn-map [dispatch-command]
+  (let [dispatch (fn [command] (fn [o] (dispatch-command (command o))))]
+    (->>
+     [["salary"
+       (dispatch c/change-salary)
+       [["s" "source" "Salary Source" :string "S" true]
+        ["d" "start-date" "Salary Start Date" :time "D"  true]
+        ["sa" "salary-amount" "Salary Amount" :float "SA" true]]]]
+     (map (fn [[a b c]] [a [a b (conj c help-opt)]]))
+     (into {}))))
 
-(defn default [& args]
-  (pprint/pprint "Invalid Action"))
 
+(defn commandline [[name f options-spec] args]
+  (let [options-spec (if)
+        options-map (mapv cli-a/option-map options-spec)
+        [options _] (cli-a/parse-commandline options-map args)]
+    (if (contains? options :h)
+      (prn "HELP")
+      (f options))))
+
+
+;;todo
+;; help (should remove required field)
+;; parsing functions should be done better
 
 (defn startup [dispatch-command]
-  (let [dispatch (get-dispatch dispatch-command)
-        fn-map (->> cli-config
-                    (map (fn [[k v]]
-                           [k (apply dispatch v)]))
-                    (into {}))]
-    (pre)
-    (loop [args-str (read-line)]
-      (let [{:keys [f args]} (parse-input args-str)
-            f (get fn-map f default)]
-        (f args)
-        (pre)
-        (recur (read-line))))))
+  (let [dispatch (fn [command] (fn [o] (dispatch-command (command o))))
+        fn-map   (fn-map dispatch-command)]
+    (do
+      (pre)
+      (loop [args-string (read-line)]
+        (let [{:keys [f-key args]} (parse-input args-string)
+              f (get fn-map f-key)]
+          (if (nil? f)
+            (print-err ["Type 'help' to see a list of available functions."
+                        "Type '<function-name> -h' will show a list of options"])
+            (try+
+             (commandline f args)
+             (catch [:type :validation-error] {:keys [error]}
+               (print-err error))
+             (catch [:type :app-error] {:keys [error]}
+               (print-err "AN APP ERROR HAS OCCURED")
+               (print-err error))
+             (catch org.apache.commons.cli.MissingOptionException e
+               (print-err [(.getMessage e)
+                           (str "for help type '" f-key " -h'")]))
+             (catch org.apache.commons.cli.UnrecognizedOptionException e
+               (print-err [(.getMessage e)
+                           (str "for help type '" f-key " -h'")]))
+             (catch Exception e
+               (print-err ["A UNEXPECTED ERROR OCCURED"
+                           "Send error.edn file to the developer"])
+               (spit "error.edn"
+                     (pr-str {:args args-string
+                              :f f
+                              :e e})))))
+          (pre)
+          (recur (read-line)))))))
