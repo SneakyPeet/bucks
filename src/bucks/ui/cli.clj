@@ -25,20 +25,27 @@
    :parse-fn #(Integer/parseInt %)])
 
 
+(defn pre [] (print "bucks> ") (flush))
+
+(defn print-err [err]
+  (cond
+    (string? err) (println err)
+    (coll? err) (doseq [e err] (println e))
+    :else err))
+
 (defn get-dispatch [dispatch-command]
   (fn [f & cli-options]
-    (fn [& args]
+    (fn [args]
       (let [{:keys [options errors] :as a} (cli/parse-opts args cli-options)]
-        (pprint/pprint a)
         (if (not-empty errors)
-          (pprint/pprint errors)
+          (print-err errors)
           (try+
            (dispatch-command (f options))
            (catch [:type :validation-error] {:keys [error]}
-             (pprint/pprint error))
+             (print-err error))
            (catch [:type :app-error] {:keys [error]}
-             (pprint/pprint "AN APP ERROR HAS OCCURED")
-             (pprint/pprint error))))))))
+             (print-err "AN APP ERROR HAS OCCURED")
+             (print-err error))))))))
 
 
 (def cli-config
@@ -61,9 +68,10 @@
                     (map (fn [[k v]]
                            [k (apply dispatch v)]))
                     (into {}))]
-    (println "bucks=>")
+    (pre)
     (loop [args-str (read-line)]
       (let [{:keys [f args]} (parse-input args-str)
             f (get fn-map f default)]
         (f args)
+        (pre)
         (recur (read-line))))))
