@@ -21,29 +21,57 @@
     {:f-key (first args)
      :args (rest args)}))
 
+(def help-opt ["h" nil "Help"])
+
+(defn quit-opt [key] [key "Quit" (fn [_] (System/exit 0)) []])
+
 (defn fn-map [dispatch-command]
-  (let [dispatch (fn [command] (fn [o] (dispatch-command (command o))))]
-    (->>
-     [["salary"
-       (dispatch c/change-salary)
-       [["s" "source" "Salary Source" :string "S" true]
-        ["d" "start-date" "Salary Start Date" :time "D"  true]
-        ["sa" "salary-amount" "Salary Amount" :float "SA" true]]]]
-     (map (fn [[a b c]] [a [a b (conj c help-opt)]]))
-     (into {}))))
+  (let [dispatch (fn [command] (fn [o] (dispatch-command (command o))))
+        actions
+        (->>
+         [["salary"
+           "Add a salary change"
+           (dispatch c/change-salary)
+           [["s" "source" "Salary Source" :string "S" true]
+            ["d" "start-date" "Salary Start Date" :time "D"  true]
+            ["sa" "salary-amount" "Salary Amount" :float "SA" true]]]
+          (quit-opt "q") (quit-opt "e") (quit-opt "quit") (quit-opt "exit")]
+         (map (fn [[a b c d]] [a [a b c (conj d help-opt)]]))
+         (into {}))
+        help-fn
+        (fn [_]
+          (println "Type '<function-name> -h' to see explanation. (example 'salary -h') ")
+          (->> actions
+               (map (fn [[_ [i d & r]]]
+                      {:f i :description d}))
+               (pprint/print-table [:f :description])))]
+    (assoc
+     actions
+     "help" ["help" "Help" help-fn []])))
 
 
-(defn commandline [[name f options-spec] args]
-  (let [options-spec (if)
-        options-map (mapv cli-a/option-map options-spec)
+(defn commandline [[name detail f options-spec] args]
+  (let [options-spec-h (if (contains? (set args) "-h") [help-opt] options-spec)
+        options-map (mapv cli-a/option-map options-spec-h)
         [options _] (cli-a/parse-commandline options-map args)]
     (if (contains? options :h)
-      (prn "HELP")
+      (do
+        (println "*****")
+        (println name)
+        (println detail)
+        (print "Options")
+        (->> options-spec
+             (map (fn [[a b c d e]]
+                    {:short (if a (str "-" a) "")
+                     :long (if b (str "--" b) "")
+                     :description c
+                     :type d
+                     :required (boolean e)}))
+             (pprint/print-table [:short :long :description :type :required])))
       (f options))))
 
 
 ;;todo
-;; help (should remove required field)
 ;; parsing functions should be done better
 
 (defn startup [dispatch-command]
