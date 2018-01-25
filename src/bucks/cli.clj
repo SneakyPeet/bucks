@@ -1,19 +1,16 @@
-(ns bucks.ui.cli
-  (:require [bucks.commands :as c]
-            [bucks.utils :as u]
-            [clojure.pprint :as pprint]
+(ns bucks.cli
+  (:require [clojure.pprint :as pprint]
             [clojure.string :as string]
             [commandline.core :as cli-a]
             [slingshot.slingshot :refer [try+]]))
 
 (defn pre [] (print "bucks> ") (flush))
 
-
 (defn print-err [err]
   (cond
     (string? err) (println err)
-    (coll? err) (doseq [e err] (println e))
-    :else err))
+    (coll? err)   (doseq [e err] (println e))
+    :else         err))
 
 
 (defn parse-input [s]
@@ -31,7 +28,7 @@
         (->>
          [["salary"
            "Add a salary change"
-           (dispatch c/change-salary)
+           (dispatch nil)
            [["s" "source" "Salary Source" :string "S" true]
             ["d" "start-date" "Salary Start Date" :time "D"  true]
             ["sa" "salary-amount" "Salary Amount" :float "SA" true]]]

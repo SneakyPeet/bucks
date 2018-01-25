@@ -1,22 +1,32 @@
 (ns bucks.bootstrap
-  (:require [bucks.ui.cli :as cli]
-            [bucks.stores.filestore :as filestore]
+  (:require [bucks.cli :as cli]
+            [clojure.java.io :as io]
             [bucks.core :as c])
   (:gen-class))
 
-(def store-path "bucks.eventstore.edn")
+
+(defn- init-store [path]
+  (io/make-parents path)
+  (let [*store (if (.exists (io/file path))
+                 (-> path slurp read-string atom)
+                 (atom c/initial-state))]
+    (add-watch *store :save-store
+               (fn [_ _ _ new-state]
+                 (spit path (pr-str new-state))))
+    *store))
 
 
-(defn- create-dispatch-command
-  []
-  (fn [cmd]
-    (c/handle-command {} cmd)))
+(defn- apply-command
+  [state {:keys [type] :as command}]
+  (c/apply-command type state (dissoc command :type)))
 
 
-(defn startup []
-  (->> (create-dispatch-command)
-       (cli/startup)))
+(defn startup [store-path]
+  (let [*state (init-store store-path)
+        handle-command (fn [command]
+                           (swap! *state #(apply-command % command)))]
+    (cli/startup handle-command)))
 
 
 (defn -main [& args]
-  (startup))
+  (startup "bucks.store.edn"))
