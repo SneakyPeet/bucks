@@ -131,22 +131,28 @@
                     :closed-assets {}
                     :date-of-birth (.getTime (Date. 1984 12 6))
                     :wealth-index-goals {}
-                    :yearly-goals []})
+                    :yearly-goals {}})
 
 
 (defn guard-state [state] (guard ::state state))
 
 
+(defn new-salary [s]
+  (guard ::salary
+         (select-keys s [:timestamp :amount :source])))
+
+
 (defn add-salary [state salary]
   (update state :salaries
-          #(conj % (guard ::salary salary))))
+          #(conj % (new-salary salary))))
 
 
 (defn new-asset [asset]
-  (-> asset
-      (select-keys [:name :asset-type :exclude-from-net])
-      (assoc :transactions []
-             :asset-values [])))
+  (guard ::asset
+         (-> asset
+             (select-keys [:name :asset-type :exclude-from-net])
+             (assoc :transactions []
+                    :asset-values []))))
 
 
 (defn confirm-asset [{:keys [assets] :as state} {:keys [name] :as asset}]
@@ -163,7 +169,7 @@
   (confirm-no-asset state asset)
   (assoc-in state
             [:assets (:name asset)]
-            (guard ::asset (new-asset asset))))
+            (new-asset asset)))
 
 
 (defn close-asset [state {:keys [name]}]
@@ -175,9 +181,10 @@
 
 
 (defn transaction [type t]
-  (-> t
-      (assoc :transaction-type type)
-      (select-keys [:transaction-type :timestamp :amount :units :note])))
+  (guard ::transaction
+         (-> t
+             (assoc :transaction-type type)
+             (select-keys [:transaction-type :timestamp :amount :units :note]))))
 
 
 (defn deposit [t] (transaction :deposit t))
@@ -189,7 +196,7 @@
 (defn make-transaction [f state {:keys [name] :as transaction}]
   (confirm-asset state transaction)
   (update-in state [:assets name :transactions]
-             #(conj % (guard ::transaction (f transaction)))))
+             #(conj % (f transaction))))
 
 
 (defn make-deposit [state transaction] (make-transaction deposit state transaction))
@@ -202,13 +209,22 @@
   (assoc state :date-of-birth (guard ::date-of-birth dob)))
 
 
+(defn wealth-index-goal [g]
+  (guard ::wealth-index-goal
+         (select-keys g [:name :age :units])))
+
+
 (defn add-wealth-index-goal [state {:keys [name] :as goal}]
-  (assoc-in state [:wealth-index-goals name] (guard ::wealth-index-goal goal)))
+  (assoc-in state [:wealth-index-goals name] (wealth-index-goal goal)))
 
 
-(defn add-yearly-goal [state yearly-goal]
-  (update state :yearly-goals
-          #(conj % (guard ::yearly-goals yearly-goal))))
+(defn yearly-goal [g]
+  (guard ::yearly-goal
+         (select-keys g [:name :year :percentage])))
+
+
+(defn add-yearly-goal [state {:keys [name year] :as goal}]
+  (assoc-in state [:yearly-goals year name] (yearly-goal goal)))
 
 
 ;;;; COMMANDS
