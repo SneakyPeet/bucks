@@ -81,7 +81,7 @@
 
 (def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "UnitTrust"})
 
-(s/def ::asset-value (s/keys :req-un [::date ::amount]))
+(s/def ::asset-value (s/keys :req-un [::timestamp ::amount]))
 
 (s/def ::asset-values (s/coll-of ::asset-values))
 
@@ -147,12 +147,30 @@
           #(conj % (new-salary salary))))
 
 
+(defn transaction [type t]
+  (guard ::transaction
+         (-> t
+             (assoc :transaction-type type)
+             (select-keys [:transaction-type :timestamp :amount :units :note]))))
+
+
+(defn deposit [t] (transaction :deposit t))
+
+
+(defn withdrawal [t] (transaction :withdrawal t))
+
+
+(defn asset-value [v]
+  (guard ::asset-value
+         (select-keys v [:amount :timestamp])))
+
+
 (defn new-asset [asset]
   (guard ::asset
          (-> asset
              (select-keys [:name :asset-type :exclude-from-net])
-             (assoc :transactions []
-                    :asset-values []))))
+             (assoc :transactions '((deposit asset))
+                    :asset-values '((asset-value asset))))))
 
 
 (defn confirm-asset [{:keys [assets] :as state} {:keys [name] :as asset}]
@@ -180,18 +198,6 @@
         (update :assets #(dissoc % name)))))
 
 
-(defn transaction [type t]
-  (guard ::transaction
-         (-> t
-             (assoc :transaction-type type)
-             (select-keys [:transaction-type :timestamp :amount :units :note]))))
-
-
-(defn deposit [t] (transaction :deposit t))
-
-
-(defn withdrawal [t] (transaction :withdrawal t))
-
 
 (defn make-transaction [f state {:keys [name] :as transaction}]
   (confirm-asset state transaction)
@@ -203,6 +209,12 @@
 
 
 (defn make-withdrawal [state transaction] (make-transaction withdrawal state transaction))
+
+
+(defn set-asset-value [state {:keys [name] :as value}]
+  (confirm-asset state value)
+  (update-in state [:assets name :asset-values]
+             #(conj % (asset-value value))))
 
 
 (defn set-date-of-birth [state dob]
