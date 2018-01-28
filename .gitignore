@@ -12,3 +12,4 @@ pom.xml
 .repl
 .nrepl-port
 /error.edn
+/bucks.store.edn

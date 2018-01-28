@@ -48,9 +48,13 @@
 
 (s/def ::timestamp timestamp?)
 
-(s/def ::units gt-zero?)
+(s/def ::units pos?)
 
-(s/def ::age gt-zero?)
+(s/def ::age pos?)
+
+(s/def ::amount pos?)
+
+(s/def ::value pos?)
 
 (s/def ::date-of-birth timestamp?)
 
@@ -58,9 +62,12 @@
 
 (s/def ::year year?)
 
+(s/def ::percentage percentage?)
+
+
 ;; Salary
 
-(s/def ::salary (s/keys :req-un [::timestamp ::amount ::source]))
+(s/def ::salary (s/keys :req-un [::timestamp ::value ::source]))
 
 (s/def ::salaries (s/coll-of ::salary))
 
@@ -81,18 +88,21 @@
 
 (def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "UnitTrust"})
 
-(s/def ::asset-value (s/keys :req-un [::timestamp ::amount]))
+(s/def ::asset-value (s/keys :req-un [::timestamp ::value]))
 
 (s/def ::asset-values (s/coll-of ::asset-values))
 
 (s/def ::asset-type ::not-empty-string)
 
-(s/def ::exclude-from-net? boolean?)
+(s/def ::exclude-from-net boolean?)
+
+(s/def ::closed? boolean?)
 
 (s/def ::asset (s/keys :req-un [::name
                                 ::asset-type
                                 ::transactions
-                                ::asset-values]
+                                ::asset-values
+                                ::closed?]
                        :opt-un [::exclude-from-net]))
 
 (s/def ::assets (s/map-of ::not-empty-string ::asset))
@@ -113,11 +123,9 @@
 
 ;; State
 
-(s/def ::closed-assets ::assets)
 
 (s/def ::state (s/keys :req-un [::salaries
                                 ::assets
-                                ::closed-assets
                                 ::date-of-birth
                                 ::wealth-index-goals
                                 ::yearly-goals]))
@@ -128,7 +136,6 @@
 
 (def initial-state {:salaries []
                     :assets {}
-                    :closed-assets {}
                     :date-of-birth (.getTime (Date. 1984 12 6))
                     :wealth-index-goals {}
                     :yearly-goals {}})
@@ -139,7 +146,7 @@
 
 (defn new-salary [s]
   (guard ::salary
-         (select-keys s [:timestamp :amount :source])))
+         (select-keys s [:timestamp :value :source])))
 
 
 (defn add-salary [state salary]
@@ -162,20 +169,23 @@
 
 (defn asset-value [v]
   (guard ::asset-value
-         (select-keys v [:amount :timestamp])))
+         (select-keys v [:value :timestamp])))
 
 
 (defn new-asset [asset]
   (guard ::asset
          (-> asset
              (select-keys [:name :asset-type :exclude-from-net])
-             (assoc :transactions '((deposit asset))
-                    :asset-values '((asset-value asset))))))
+             (assoc :closed? false
+                    :transactions '((deposit (assoc asset :amount (:value asset)))
+                    :asset-values '((asset-value asset)))))))
 
 
 (defn confirm-asset [{:keys [assets] :as state} {:keys [name] :as asset}]
   (when-not (contains? assets name)
-    (throw-validation-error (str "Asset " name " does not exist"))))
+    (throw-validation-error (str "Asset " name " does not exist")))
+  (when (true? (get-in assets [name :closed?]))
+    (throw-validation-error (str "Asset " name " has been closed"))))
 
 
 (defn confirm-no-asset [{:keys [assets] :as state} {:keys [name] :as asset}]
@@ -190,19 +200,13 @@
             (new-asset asset)))
 
 
-(defn close-asset [state {:keys [name]}]
-  (let [asset (get-in state [:assets name])]
-    (confirm-asset state asset)
-    (-> state
-        (assoc-in [:closed-assets name] asset)
-        (update :assets #(dissoc % name)))))
-
-
-
 (defn make-transaction [f state {:keys [name] :as transaction}]
   (confirm-asset state transaction)
-  (update-in state [:assets name :transactions]
-             #(conj % (f transaction))))
+  (-> state
+      (update-in [:assets name :transactions]
+                 #(conj % (f transaction)))
+      (update-in [:assets name :asset-values]
+                 #(conj % (asset-value transaction)))))
 
 
 (defn make-deposit [state transaction] (make-transaction deposit state transaction))
@@ -215,6 +219,14 @@
   (confirm-asset state value)
   (update-in state [:assets name :asset-values]
              #(conj % (asset-value value))))
+
+
+(defn close-asset [state {:keys [name] :as close-transaction}]
+  (let [asset (get-in state [:assets name])]
+    (confirm-asset state asset)
+    (-> state
+        (assoc-in [:assets name :closed?] true)
+        (make-withdrawal (assoc close-transaction :value 0)))))
 
 
 (defn set-date-of-birth [state dob]
