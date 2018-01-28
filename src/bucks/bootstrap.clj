@@ -1,7 +1,8 @@
 (ns bucks.bootstrap
   (:require [bucks.cli :as cli]
             [clojure.java.io :as io]
-            [bucks.core :as c])
+            [bucks.core :as c]
+            [bucks.queries :as q])
   (:gen-class))
 
 
@@ -24,8 +25,9 @@
 (defn startup [store-path]
   (let [*state (init-store store-path)
         handle-command (fn [command]
-                           (swap! *state #(apply-command % command)))]
-    (cli/startup handle-command)))
+                         (swap! *state #(apply-command % command)))
+        query (fn [t o] (q/query t @*state o))]
+    (cli/startup handle-command query)))
 
 
 (defn -main [& args]

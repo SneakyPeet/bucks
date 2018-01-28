@@ -2,7 +2,8 @@
   (:require [clojure.pprint :as pprint]
             [clojure.string :as string]
             [commandline.core :as cli-a]
-            [slingshot.slingshot :refer [try+]]))
+            [slingshot.slingshot :refer [try+]])
+  (:import [java.util Date]))
 
 
 ;;;; COMMANDS
@@ -15,12 +16,29 @@
 (def amount-param ["a" "amount" "Transaction Amount" :double "A" true])
 (def value-param ["v" "value" "Asset Value" :double "V" true])
 (def dob-param ["dob" "date-of-birth" "Date of Birth" :time "DOB" true])
-(def note-param ["n" "note" "Note" :string "N" true])
+(def note-param ["nt" "note" "Note" :string "N" false])
 (def year-param ["y" "year" "Year" :integer "Y" true])
-(def precentage-param ["p" "percentage" "Percentage" :double "P" true])
+(def percentage-param ["p" "percentage" "Percentage" :double "P" true])
+(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "UnitTrust"})
+(def asset-type-param ["at" "asset-type" (str "Asset type: " asset-types) :string "AT" true])
+(def exclude-from-net-param
+  ["ex" "exclude-from-net" "Should Asset Be Excluded From Net Calculations" :boolean "EN" true])
+
+(def transaction-params [name-param date-param amount-param units-param note-param])
 
 (def commands
-  {:add-salary ["salary" "Add a salary change" [source-param date-param value-param]]})
+  {:add-salary ["salary" "Salaries: Add a Salary Change"
+                [source-param date-param value-param]]
+   :add-asset ["add-asset" "Assets: Add. Requires the initial amount"
+               (concat transaction-params [asset-type-param exclude-from-net-param])]
+   :close-asset ["close-asset" "Assets: Close. Requires the close value" transaction-params]
+   :make-deposit ["deposit" "Assets: Depost Into Asset" transaction-params]
+   :make-withdrawal ["withdraw" "Assets: Withdraw amount from asset" transaction-params]
+   :set-asset-value ["value" "Assets: Set value" [name-param date-param value-param]]
+   :set-date-of-birth ["date-of-birth" "WI: Set Bate of Birth for WI Calculations" [dob-param]]
+   :add-wealth-index-goal ["add-wi-goal" "WI: Add WI Goal" [name-param age-param units-param]]
+   :add-yearly-goal ["add-year-goal" "Goals: Add Year Growth Goal"
+                     [name-param year-param percentage-param]]})
 
 
 (def all-param-keys (->> commands
@@ -46,16 +64,16 @@
 (def hour-offset 2) ;; FAKE OUT RSA TIME BECAUSE I SUCK AT LOCALIZATION
 
 
-(defn prep-date [k m]
+(defn prep-date [k rk m]
   (->> (get m k)
        (#(.getMillis (.plusHours % hour-offset)))
-       (assoc m :timestamp)))
+       (assoc m rk)))
 
 
 (defn prep-dates [m]
   (cond->> m
-    (contains? m :date-of-birth) (prep-date :date-of-birth)
-    (contains? m :date) (prep-date :date)))
+    (contains? m :date-of-birth) (prep-date :date-of-birth :date-of-birth)
+    (contains? m :date) (prep-date :date :timestamp)))
 
 
 (defn prep-command [dispatch-command [k opt]]
@@ -63,6 +81,45 @@
    (take 2 opt)
    [(fn [o] (->> (assoc o :type k) prep-dates (confirm-command dispatch-command)))]
    (drop 2 opt)))
+
+
+;;;; QUERIES
+
+
+(defn prep-timestamp [k m]
+  (update m k #(.toString (Date. %))))
+
+
+(defn prep-timestamps [m]
+  (cond->> m
+    (contains? m :date-of-birth) (prep-timestamp :date-of-birth)
+    (contains? m :timestamp) (prep-timestamp :timestamp)))
+
+
+(defn prep-query [f query [k opt]]
+  (concat
+   (take 2 opt)
+   [(fn [o] (f (query k o)))]
+   (drop 2 opt)))
+
+
+(def table-queries
+  {:salaries ["salaries" "Salaries: View" []]
+   :assets ["assets" "Assets: View" []]
+   :asset-history ["asset-history" "Assets: History" [name-param]]})
+
+
+(defn prep-table-query [query query-conf]
+  (prep-query
+   (fn [d]
+     (let [d
+           (->> d
+                (sort-by :name)
+                (sort-by :timestamp)
+                (map prep-timestamps))]
+       (if (empty? d) (println "No Data") (pprint/print-table d))))
+   query
+   query-conf))
 
 
 ;;;; HELP
@@ -82,6 +139,7 @@
     (->> actions
          (map (fn [[_ [i d & r]]]
                 {:f i :description d}))
+         (sort-by :description)
          (pprint/print-table [:f :description]))))
 
 
@@ -90,11 +148,12 @@
 (def base-actions [(quit-opt "q") (quit-opt "e") (quit-opt "quit") (quit-opt "exit")])
 
 
-(defn action-map [dispatch-command]
+(defn action-map [dispatch-command query]
   (let [actions
         (->> commands
              (map (partial prep-command dispatch-command))
              (into base-actions)
+             (into (map (partial prep-table-query query) table-queries))
              (map prep-help)
              (map (juxt first identity))
              (into {}))
@@ -130,22 +189,23 @@
         (println detail)
         (print "Options")
         (->> options-spec
-             (map (fn [[a b c d e]]
+             (map (fn [[a b c d e f]]
                     {:short (if a (str "-" a) "")
                      :long (if b (str "--" b) "")
                      :description c
                      :type d
-                     :required (boolean e)}))
-             (pprint/print-table [:short :long :description :type :required])))
+                     :required (boolean f)}))
+             (sort-by :required)
+             reverse
+             (pprint/print-table [:required :short :long :description :type])))
       (f options))))
 
 
 ;;todo
 ;; parsing functions should be done better
 
-(defn startup [dispatch-command]
-  (let [dispatch (fn [command] (fn [o] (dispatch-command (command o))))
-        fn-map   (action-map dispatch-command)]
+(defn startup [dispatch-command query]
+  (let [fn-map (action-map dispatch-command query)]
     (do
       (pre)
       (loop [args-string (read-line)]

@@ -28,8 +28,10 @@
 (defn not-empty-string? [s] (and (string? s)
                                 (not-empty s)))
 
-(defn gt-zero? [n] (and (number? n) (pos? n)))
+(defn gt=zero? [n] (and (number? n) (not (neg? n))))
 
+
+(defn gt-zero? [n] (and (number? n) (pos? n)))
 
 (defn timestamp? [n] (and (integer? n) (pos? n)))
 
@@ -48,13 +50,13 @@
 
 (s/def ::timestamp timestamp?)
 
-(s/def ::units pos?)
+(s/def ::units gt=zero?)
 
 (s/def ::age pos?)
 
-(s/def ::amount pos?)
+(s/def ::amount gt=zero?)
 
-(s/def ::value pos?)
+(s/def ::value gt=zero?)
 
 (s/def ::date-of-birth timestamp?)
 
@@ -90,7 +92,7 @@
 
 (s/def ::asset-value (s/keys :req-un [::timestamp ::value]))
 
-(s/def ::asset-values (s/coll-of ::asset-values))
+(s/def ::asset-values (s/coll-of ::asset-value))
 
 (s/def ::asset-type ::not-empty-string)
 
@@ -177,8 +179,8 @@
          (-> asset
              (select-keys [:name :asset-type :exclude-from-net])
              (assoc :closed? false
-                    :transactions '((deposit (assoc asset :amount (:value asset)))
-                    :asset-values '((asset-value asset)))))))
+                    :transactions [(deposit asset)]
+                    :asset-values [(asset-value (assoc asset :value (:amount asset)))]))))
 
 
 (defn confirm-asset [{:keys [assets] :as state} {:keys [name] :as asset}]
@@ -258,6 +260,7 @@
 (defmethod apply-command :close-asset  [_ & r] (apply close-asset r))
 (defmethod apply-command :make-deposit [_ & r] (apply make-deposit r))
 (defmethod apply-command :make-withdrawal [_ & r] (apply make-withdrawal r))
+(defmethod apply-command :set-asset-value  [_ & r] (apply set-asset-value r))
 (defmethod apply-command :set-date-of-birth [_ & r] (apply set-date-of-birth r))
 (defmethod apply-command :add-wealth-index-goal [_ & r] (apply add-wealth-index-goal r))
 (defmethod apply-command :add-yearly-goal [_ & r] (apply add-yearly-goal r))
