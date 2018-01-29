@@ -8,7 +8,7 @@
 (defmethod query :assets [_ state _]
   (->> (:assets state)
        vals
-       (map #(dissoc % :transactions :values))))
+       (map #(dissoc % :transactions :asset-values))))
 
 
 (defmethod query :asset-history [_ state {:keys [name]}]

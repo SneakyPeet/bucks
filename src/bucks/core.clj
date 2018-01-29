@@ -138,7 +138,7 @@
 
 (def initial-state {:salaries []
                     :assets {}
-                    :date-of-birth (.getTime (Date. 1984 12 6))
+                    :date-of-birth 471146400000 ;;1984-12-06
                     :wealth-index-goals {}
                     :yearly-goals {}})
 
@@ -186,7 +186,7 @@
 (defn confirm-asset [{:keys [assets] :as state} {:keys [name] :as asset}]
   (when-not (contains? assets name)
     (throw-validation-error (str "Asset " name " does not exist")))
-  (when (true? (get-in assets [name :closed?]))
+  (when (= true (get-in assets [name :closed?]))
     (throw-validation-error (str "Asset " name " has been closed"))))
 
 
@@ -227,12 +227,12 @@
   (let [asset (get-in state [:assets name])]
     (confirm-asset state asset)
     (-> state
-        (assoc-in [:assets name :closed?] true)
-        (make-withdrawal (assoc close-transaction :value 0)))))
+        (make-withdrawal (assoc close-transaction :value 0))
+        (assoc-in [:assets name :closed?] true))))
 
 
-(defn set-date-of-birth [state dob]
-  (assoc state :date-of-birth (guard ::date-of-birth dob)))
+(defn set-date-of-birth [state {:keys [date-of-birth]}]
+  (assoc state :date-of-birth (guard ::date-of-birth date-of-birth)))
 
 
 (defn wealth-index-goal [g]

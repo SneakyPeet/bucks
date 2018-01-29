@@ -13,7 +13,8 @@
                  [org.clojure/core.async  "0.3.443"]
                  [slingshot "0.12.2"]
                  [expound "0.4.0"]
-                 [commandline-clj "0.3.0"]]
+                 [commandline-clj "0.3.0"]
+                 [jline "2.14.2"]]
 
   :plugins [[lein-figwheel "0.5.14"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]

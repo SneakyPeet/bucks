@@ -3,7 +3,12 @@
             [clojure.string :as string]
             [commandline.core :as cli-a]
             [slingshot.slingshot :refer [try+]])
-  (:import [java.util Date]))
+  (:import java.util.Date
+           jline.console.ConsoleReader))
+
+
+(defn read-key [t] (println t) (read-line))
+
 
 
 ;;;; COMMANDS
@@ -24,18 +29,20 @@
 (def exclude-from-net-param
   ["ex" "exclude-from-net" "Should Asset Be Excluded From Net Calculations" :boolean "EN" true])
 
-(def transaction-params [name-param date-param amount-param units-param note-param])
+(def transaction-params [name-param date-param amount-param units-param note-param value-param])
 
 (def commands
   {:add-salary ["salary" "Salaries: Add a Salary Change"
                 [source-param date-param value-param]]
    :add-asset ["add-asset" "Assets: Add. Requires the initial amount"
-               (concat transaction-params [asset-type-param exclude-from-net-param])]
-   :close-asset ["close-asset" "Assets: Close. Requires the close value" transaction-params]
+               [name-param date-param amount-param units-param
+                note-param asset-type-param exclude-from-net-param]]
+   :close-asset ["close-asset" "Assets: Close. Requires the close value"
+                 [name-param date-param amount-param note-param]]
    :make-deposit ["deposit" "Assets: Depost Into Asset" transaction-params]
    :make-withdrawal ["withdraw" "Assets: Withdraw amount from asset" transaction-params]
    :set-asset-value ["value" "Assets: Set value" [name-param date-param value-param]]
-   :set-date-of-birth ["date-of-birth" "WI: Set Bate of Birth for WI Calculations" [dob-param]]
+   :set-date-of-birth ["dob" "WI: Set Bate of Birth for WI Calculations" [dob-param]]
    :add-wealth-index-goal ["add-wi-goal" "WI: Add WI Goal" [name-param age-param units-param]]
    :add-yearly-goal ["add-year-goal" "Goals: Add Year Growth Goal"
                      [name-param year-param percentage-param]]})
@@ -54,8 +61,7 @@
 (defn confirm-command [f o]
   (pprint/print-table [(select-keys o all-param-keys)])
   (println)
-  (println "Are these values correct? (y/n)")
-  (let [v (read-line)]
+  (let [v (read-key "Are these values correct? (y/n) ")]
     (if (contains? #{"y" "Y" "yes"} v)
       (do (f o) (println "Done"))
       (println "cancel"))))
@@ -79,7 +85,7 @@
 (defn prep-command [dispatch-command [k opt]]
   (concat
    (take 2 opt)
-   [(fn [o] (->> (assoc o :type k) prep-dates (confirm-command dispatch-command)))]
+   [(fn [o] (->> (assoc o :type k) (confirm-command #(-> % prep-dates dispatch-command))))]
    (drop 2 opt)))
 
 
