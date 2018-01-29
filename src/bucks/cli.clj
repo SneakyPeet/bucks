@@ -7,8 +7,15 @@
            jline.console.ConsoleReader))
 
 
-(defn read-key [t] (println t) (read-line))
+(def console (ConsoleReader.))
 
+
+(.setPrompt console "bucks> ")
+
+
+(defn read-key [t]
+  (println t)
+  (.readCharacter console (char-array "ynYN")))
 
 
 ;;;; COMMANDS
@@ -64,11 +71,11 @@
 
 (defn confirm-command [f o]
   (pprint/print-table [(select-keys o all-param-keys)])
-  (println)
+  (.println console)
   (let [v (read-key "Are these values correct? (y/n) ")]
     (if (contains? #{"y" "Y" "yes"} v)
-      (do (f o) (println "Done"))
-      (println "cancel"))))
+      (do (f o) (.println console "Done"))
+      (.println console "cancel"))))
 
 
 (def hour-offset 2) ;; FAKE OUT RSA TIME BECAUSE I SUCK AT LOCALIZATION
@@ -129,7 +136,9 @@
                 (sort-by :name)
                 (sort-by :timestamp)
                 (map prep-timestamps))]
-       (if (empty? d) (println "No Data") (pprint/print-table d))))
+       (if (empty? d)
+         (.println console "No Data")
+         (pprint/print-table d))))
    query
    query-conf))
 
@@ -175,12 +184,11 @@
 
 ;;;;CLI
 
-(defn pre [] (print "bucks> ") (flush))
 
 (defn print-err [err]
   (cond
-    (string? err) (println err)
-    (coll? err)   (doseq [e err] (println e))
+    (string? err) (.println console err)
+    (coll? err)   (doseq [e err] (.println console e))
     :else         err))
 
 
@@ -196,10 +204,10 @@
         [options _] (cli-a/parse-commandline options-map args)]
     (if (contains? options :h)
       (do
-        (println "*****")
-        (println name)
-        (println detail)
-        (print "Options")
+        (.println console "*****")
+        (.println console name)
+        (.println console detail)
+        (.println console "Options")
         (->> options-spec
              (map (fn [[a b c d e f]]
                     {:short (if a (str "-" a) "")
@@ -219,8 +227,9 @@
 (defn startup [dispatch-command query]
   (let [fn-map (action-map dispatch-command query)]
     (do
-      (pre)
-      (loop [args-string (read-line)]
+      (.println console "Welcome to Bucks Asset Tracker")
+      (.println console "Type help for a list of commands")
+      (loop [args-string (.readLine console)]
         (let [{:keys [f-key args]} (parse-input args-string)
               f (get fn-map f-key)]
           (if (nil? f)
@@ -247,5 +256,4 @@
                      (pr-str {:args args-string
                               :f f
                               :e e})))))
-          (pre)
-          (recur (read-line)))))))
+          (recur (.readLine console)))))))
