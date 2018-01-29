@@ -14,11 +14,15 @@
 ;;;; COMMANDS
 
 (def source-param ["s" "source" "The Name of the Source" :string "S" true])
-(def name-param ["n" "name" "Unique Name Identifier" :string "N" true])
+(def name-param ["n" "name" "Unique Name" :string "N" true])
+(def asset-name-param ["n" "name" "Unique Asset Name" :string "N" true])
 (def date-param ["d" "date" "The Date of the Change. Can be yyyy-mm-dd" :time "D" true])
-(def units-param ["u" "units" "A positive number representing units" :double "S" true])
+(def units-param ["u" "units" "A positive number representing units" :double "U" true])
+(def nr-units-param ["u" "units" "A positive number representing units" :double "U" false])
 (def age-param ["ag" "age" "Age" :integer "AG" true])
 (def amount-param ["a" "amount" "Transaction Amount" :double "A" true])
+(def deposit-amount-param ["a" "amount" "Deposit Amount" :double "A" true])
+(def withdraw-amount-param ["a" "amount" "Withdraw Amount" :double "A" true])
 (def value-param ["v" "value" "Asset Value" :double "V" true])
 (def dob-param ["dob" "date-of-birth" "Date of Birth" :time "DOB" true])
 (def note-param ["nt" "note" "Note" :string "N" false])
@@ -29,19 +33,19 @@
 (def exclude-from-net-param
   ["ex" "exclude-from-net" "Should Asset Be Excluded From Net Calculations" :boolean "EN" true])
 
-(def transaction-params [name-param date-param amount-param units-param note-param value-param])
+(def transaction-params [asset-name-param date-param amount-param nr-units-param note-param value-param])
 
 (def commands
   {:add-salary ["salary" "Salaries: Add a Salary Change"
                 [source-param date-param value-param]]
    :add-asset ["add-asset" "Assets: Add. Requires the initial amount"
-               [name-param date-param amount-param units-param
+               [asset-name-param date-param deposit-amount-param nr-units-param
                 note-param asset-type-param exclude-from-net-param]]
    :close-asset ["close-asset" "Assets: Close. Requires the close value"
-                 [name-param date-param amount-param note-param]]
+                 [asset-name-param date-param withdraw-amount-param note-param]]
    :make-deposit ["deposit" "Assets: Depost Into Asset" transaction-params]
    :make-withdrawal ["withdraw" "Assets: Withdraw amount from asset" transaction-params]
-   :set-asset-value ["value" "Assets: Set value" [name-param date-param value-param]]
+   :set-asset-value ["value" "Assets: Set value" [asset-name-param date-param value-param]]
    :set-date-of-birth ["dob" "WI: Set Bate of Birth for WI Calculations" [dob-param]]
    :add-wealth-index-goal ["add-wi-goal" "WI: Add WI Goal" [name-param age-param units-param]]
    :add-yearly-goal ["add-year-goal" "Goals: Add Year Growth Goal"
@@ -112,7 +116,9 @@
 (def table-queries
   {:salaries ["salaries" "Salaries: View" []]
    :assets ["assets" "Assets: View" []]
-   :asset-history ["asset-history" "Assets: History" [name-param]]})
+   :asset-history ["asset-history" "Assets: History" [name-param]]
+   :wi-goals ["wi-goals" "WI: View Goals" []]
+   :goals ["goals" "Goals: View" []]})
 
 
 (defn prep-table-query [query query-conf]

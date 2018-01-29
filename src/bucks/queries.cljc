@@ -20,3 +20,10 @@
                                                       :amount value
                                                       :units 0))))))
        (sort-by :timestamp)))
+
+(defmethod query :goals [_ state _] (->> (:yearly-goals state)
+                                         vals
+                                         (map vals)
+                                         (reduce into)))
+
+(defmethod query :wi-goals [_ state _] (vals (:wealth-index-goals state)))
