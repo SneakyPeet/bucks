@@ -13,3 +13,5 @@ pom.xml
 .nrepl-port
 /error.edn
 /bucks.store.edn
+/report/index.html
+/report/css/style.css

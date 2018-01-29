@@ -169,13 +169,14 @@
 (def base-actions [(quit-opt "q") (quit-opt "e") (quit-opt "quit") (quit-opt "exit")])
 
 
-(defn action-map [dispatch-command query]
+(defn action-map [dispatch-command query report]
   (let [actions
         (->> commands
              (map (partial prep-command dispatch-command))
              (into base-actions)
              (into (map (partial prep-table-query query) table-queries))
              (map prep-help)
+             (into [["report" "Generates the Report" report []]])
              (map (juxt first identity))
              (into {}))
         help-fn (print-help-fn actions)]
@@ -224,8 +225,8 @@
 ;;todo
 ;; parsing functions should be done better
 
-(defn startup [dispatch-command query]
-  (let [fn-map (action-map dispatch-command query)]
+(defn startup [dispatch-command query report]
+  (let [fn-map (action-map dispatch-command query report)]
     (do
       (.println console "Welcome to Bucks Asset Tracker")
       (.println console "Type help for a list of commands")
