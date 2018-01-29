@@ -2,7 +2,8 @@
   (:require [bucks.cli :as cli]
             [clojure.java.io :as io]
             [bucks.core :as c]
-            [bucks.queries :as q])
+            [bucks.queries :as q]
+            [clojure.string :as string])
   (:gen-class))
 
 
@@ -32,3 +33,10 @@
 
 (defn -main [& args]
   (startup "bucks.store.edn"))
+
+;;;; help
+
+(defn init-report-t []
+  (-> (slurp "resources/public/index-base.html")
+      (string/replace "\"{}\"" (pr-str (slurp "bucks.store.edn")))
+      (#(spit "resources/public/index.html" %))))

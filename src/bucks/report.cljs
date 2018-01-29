@@ -1,17 +1,23 @@
 (ns bucks.report
-  (:require ))
+  (:require [cljs.reader :as reader]
+            [rum.core :as rum]))
 
 (enable-console-print!)
 
-(println "This sdftext is printed from src/bucks/core.cljs. Go ahead and edit it and see reloading in action.")
+(def initial-state {:page :home})
 
-;; define your app data so that it doesn't get over-written on reload
 
-(defonce app-state (atom {:text "Hello world!"}))
+(defonce *state
+  (atom
+   (merge
+    initial-state
+    (reader/read-string (.. js/window -BUCKS)))))
+
+(prn *state)
+
+;;;; DEV
 
 
 (defn on-js-reload []
-  ;; optionally touch your app-state to force rerendering depending on
-  ;; your application
-  ;; (swap! app-state update-in [:__figwheel_counter] inc)
+   (swap! *state update-in [:__figwheel_counter] inc)
 )
