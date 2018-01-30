@@ -19,8 +19,12 @@
 
 ;;;; CHARTS
 
+
+(defn load-charts []
+  (.load js/google.charts "current" (clj->js {:packages ["corechart" "annotationchart" "gauge"]}))
+  (.setOnLoadCallback js/google.charts #(page :home)))
+
 (defn data-table [coll]
-  (prn coll)
   (.arrayToDataTable js/google.visualization (clj->js coll)))
 
 
@@ -37,6 +41,20 @@
   (draw-chart js/google.visualization.AnnotationChart id data opt))
 
 
+(defn draw-guages [id data opt]
+  (draw-chart js/google.visualization.Gauge id data opt))
+
+
+;;;; COMPONENTS
+
+(defn wrap-args [f]
+  (fn [s]
+    (apply f (:rum/args s))
+    s))
+
+;; SALARY
+
+
 (defn salary-over-time [{:keys [salaries]}]
   (let [data
         (->> salaries
@@ -50,18 +68,58 @@
                             :height 250})]
     (draw-annotation-chart "salary-chart" data opt)))
 
-;;;; COMPONENTS
-
-(defn wrap-args [f]
-  (fn [s]
-    (apply f (:rum/args s))
-    s))
-
 
 (rum/defc salaries < rum/static
   {:did-mount (wrap-args salary-over-time)}
   [state]
-  [:div {:id "salary-chart"} "s"])
+  [:div {:id "salary-chart"}])
+
+
+;; WI
+
+(defn wealth-index-over-time [{:keys [wi]}]
+  (draw-annotation-chart
+   "wi-chart"
+   (->> wi
+        (sort-by :timestamp)
+        (map (fn [{:keys [timestamp wi]}]
+               [(js/Date. timestamp) wi]))
+        (into [["Date" "WI"]])
+        data-table)
+   (chart-options {:height 250})))
+
+
+(rum/defc wi < rum/static
+  {:did-mount (wrap-args wealth-index-over-time)}
+  [state]
+  [:div {:id "wi-chart"}])
+
+
+(defn wealth-guage [{:keys [wi]}]
+  (draw-guages
+   "wi-guage"
+   (data-table [["Lavel" "Value"]
+                ["Wealth Index" (get (last wi) :wi 0)]])
+   (chart-options {:height 200
+                   :majorTicks (range 0 6 1)
+                   :max 5
+                   :min 0
+                   :greenColor "green"
+                   :greenFrom  3
+                   :greenTo    5
+                   :yellowColor "yellow"
+                   :yellowFrom  1.5
+                   :yellowTo    3
+                   :redColor "red"
+                   :redFrom  0
+                   :redTo    1.5})))
+
+
+(rum/defc wi-guage < rum/static
+  {:did-mount (wrap-args wealth-guage)}
+  [state]
+  [:div {:id "wi-guage"}])
+
 
 ;;;; PAGES
 
@@ -73,14 +131,15 @@
 
 
 (defmethod render-page :loading [state]
-  (.load js/google.charts "current" (clj->js {:packages ["corechart" "annotationchart"]}))
-  (.setOnLoadCallback js/google.charts #(page :home))
+  (load-charts)
   [:strong "loading"])
 
 
 (defmethod render-page :home [state]
   [:div
    [:h1.title "Home"]
+   (wi-guage state)
+   (wi state)
    (salaries state)])
 
 

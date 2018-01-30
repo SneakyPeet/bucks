@@ -26,7 +26,8 @@
 
 (defn init-report-index [store-path output]
   (-> (slurp "resources/public/index-base.html")
-      (string/replace "\"{}\"" (pr-str (slurp store-path)))
+      (string/replace "\"{}\"" (pr-str (str (q/prep-report-data
+                                             (read-string (slurp store-path))))))
       (#(spit output %))))
 
 
@@ -45,6 +46,9 @@
     (doseq [f report-files] (copy-report-file f))
     (init-report-index store-path index)
     (browse-url index)))
+
+
+
 
 
 (defn startup [store-path]

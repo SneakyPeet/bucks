@@ -93,7 +93,9 @@
                            (reduce + 0))}))
        (sort-by :date)))
 
+
 (defn wi [net salary age] (/ (/ net salary) (/ age 10)))
+
 
 (defn monthly-wealth-index [state]
   (let [dob (t/local-date (t/instant (:date-of-birth state)) "UTC")
@@ -110,3 +112,17 @@
                    :age age
                    :salary value
                    :wi (wi net value age)}))))))
+
+
+(defn unwrap-date [{:keys [date] :as m}]
+  (-> m
+      (assoc :timestamp (t/to-millis-from-epoch (t/offset-date-time date 0)))
+      (dissoc :date)))
+
+
+(defn unwrap-dates [coll] (map unwrap-date coll))
+
+
+(defn prep-report-data [state]
+  (assoc state
+         :wi (unwrap-dates (monthly-wealth-index state))))
