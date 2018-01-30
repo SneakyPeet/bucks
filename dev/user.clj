@@ -1,6 +1,8 @@
 (ns user
   (:require
-   [figwheel-sidecar.repl-api :as f]))
+   [figwheel-sidecar.repl-api :as f]
+   [bucks.bootstrap :as bootstrap]
+   [java-time.repl :as jt]))
 
 ;; user is a namespace that the Clojure runtime looks for and
 ;; loads if its available
@@ -40,3 +42,9 @@
   "Launch a ClojureScript REPL that is connected to your build and host environment."
   []
   (f/cljs-repl))
+
+
+(defn load-test-data
+  "Hidrates Figwheel with test data from bucks.store.edn"
+  []
+  (bootstrap/init-report-index "bucks.store.edn" "resources/public/index.html"))

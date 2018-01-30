@@ -88,7 +88,7 @@
 
 ;; Assets
 
-(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "UnitTrust"})
+(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "CFD" "ETF" "UnitTrust"})
 
 (s/def ::asset-value (s/keys :req-un [::timestamp ::value]))
 
