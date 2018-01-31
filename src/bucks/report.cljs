@@ -25,7 +25,6 @@
   (.setOnLoadCallback js/google.charts #(page :home)))
 
 (defn data-table [coll]
-  (prn coll)
   (.arrayToDataTable js/google.visualization (clj->js coll)))
 
 
@@ -35,7 +34,7 @@
   (.draw
    (Chart.
     (.getElementById js/document id))
-   data opt))
+   data (chart-options opt)))
 
 
 (defn draw-annotation-chart [id data opt]
@@ -47,7 +46,15 @@
 
 
 (defn draw-line-chart [id data opt]
-  (draw-chart js/google.visualization.LineChart id data opt))
+  (draw-chart js/google.visualization.LineChart
+              id data
+              (merge {:explorer {:actions ["dragToZoom" "rightClickToReset"]
+                                 :axis "horizontal"
+                                 :keepInBounds true}} opt)))
+
+
+(defn draw-column-chart [id data opt]
+  (draw-chart js/google.visualization.ColumnChart id data opt))
 
 
 ;;;; COMPONENTS
@@ -67,11 +74,12 @@
              (map
               (fn [{:keys [timestamp value source]}]
                 [(js/Date. timestamp) value source]))
-             (into [["Date" "" "Source"]])
+             (into [["Date" "Value" {:type "string" :role "annotation"}]])
              data-table)
-        opt (chart-options {:title "Salary"
-                            :height 250})]
-    (draw-annotation-chart "salary-chart" data opt)))
+        opt {:title "Salary"
+             :height 250
+             :annotations {"Source" {:style "line"}}}]
+    (draw-line-chart "salary-chart" data opt)))
 
 
 (rum/defc salaries < rum/static
@@ -95,7 +103,7 @@
                  (conj goals (js/Date. timestamp))))
           (into [headings])
           data-table)
-     (chart-options {:height 250}))))
+     {:height 250})))
 
 
 (rum/defc wi < rum/static
@@ -107,21 +115,21 @@
 (defn wealth-guage [{:keys [wi]}]
   (draw-guages
    "wi-guage"
-   (data-table [["Lavel" "Value"]
+   (data-table [["Level" "Value"]
                 ["Wealth Index" (get (last wi) :wi 0)]])
-   (chart-options {:height 200
-                   :majorTicks (range 0 6 1)
-                   :max 5
-                   :min 0
-                   :greenColor "green"
-                   :greenFrom  3
-                   :greenTo    5
-                   :yellowColor "yellow"
-                   :yellowFrom  1.5
-                   :yellowTo    3
-                   :redColor "red"
-                   :redFrom  0
-                   :redTo    1.5})))
+   {:height      200
+    :majorTicks  (range 0 6 1)
+    :max         5
+    :min         0
+    :greenColor  "green"
+    :greenFrom   3
+    :greenTo     5
+    :yellowColor "yellow"
+    :yellowFrom  1.5
+    :yellowTo    3
+    :redColor    "red"
+    :redFrom     0
+    :redTo       1.5}))
 
 
 (rum/defc wi-guage < rum/static
@@ -129,6 +137,23 @@
   [state]
   [:div {:id "wi-guage"}])
 
+
+;; NET
+
+(defn net-bar [{:keys [wi]}]
+  (draw-column-chart
+   "net-bar"
+   (->> wi
+        (take-last 5)
+        (map (juxt #(js/Date. (:timestamp %)) :net))
+        (into [["Month" "Value"]])
+        data-table)
+   {:bars "vertical"}))
+
+(rum/defc net < rum/static
+  {:did-mount (wrap-args net-bar)}
+  [state]
+  [:div {:id "net-bar"}])
 
 ;;;; PAGES
 
@@ -145,11 +170,12 @@
 
 
 (defmethod render-page :home [state]
-  [:div
-   [:h1.title "Home"]
-   (wi-guage state)
-   (wi state)
-   (salaries state)])
+  [:div.columns.is-multiline
+   [:div.column.is-2.box
+    (wi-guage state)]
+   [:div.column.is-4.box (net state)]
+   [:div.column.is-6.box (wi state)]
+   [:div.column.is-6.box (salaries state)]])
 
 
 ;;;;APP
