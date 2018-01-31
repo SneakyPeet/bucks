@@ -25,6 +25,7 @@
   (.setOnLoadCallback js/google.charts #(page :home)))
 
 (defn data-table [coll]
+  (prn coll)
   (.arrayToDataTable js/google.visualization (clj->js coll)))
 
 
@@ -43,6 +44,10 @@
 
 (defn draw-guages [id data opt]
   (draw-chart js/google.visualization.Gauge id data opt))
+
+
+(defn draw-line-chart [id data opt]
+  (draw-chart js/google.visualization.LineChart id data opt))
 
 
 ;;;; COMPONENTS
@@ -77,16 +82,20 @@
 
 ;; WI
 
-(defn wealth-index-over-time [{:keys [wi]}]
-  (draw-annotation-chart
-   "wi-chart"
-   (->> wi
-        (sort-by :timestamp)
-        (map (fn [{:keys [timestamp wi]}]
-               [(js/Date. timestamp) wi]))
-        (into [["Date" "WI"]])
-        data-table)
-   (chart-options {:height 250})))
+(defn wealth-index-over-time [{:keys [wi wealth-index-goals]}]
+  (let [headings (->> wealth-index-goals
+                      vals
+                      (map :name)
+                      (concat ["Date" "WI"]))]
+    (draw-line-chart
+     "wi-chart"
+     (->> wi
+          (sort-by :timestamp)
+          (map (fn [{:keys [timestamp goals]}]
+                 (conj goals (js/Date. timestamp))))
+          (into [headings])
+          data-table)
+     (chart-options {:height 250}))))
 
 
 (rum/defc wi < rum/static

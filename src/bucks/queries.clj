@@ -114,6 +114,28 @@
                    :wi (wi net value age)}))))))
 
 
+(defn monthly-wi-goals [state]
+  (let [index (monthly-wealth-index state)
+        dob (t/local-date (t/instant(:date-of-birth state)) "UTC")
+        start (first index)
+        date (get start :date (t/local-date))
+        value (get start :wi 0)
+        goals (->> state
+                   :wealth-index-goals
+                   vals
+                   (map
+                    (fn [{:keys [age units]}]
+                      (let [goal-date (t/plus dob (t/years age))
+                            months (t/time-between dob goal-date :months)
+                            steps (/ (- units value) months)]
+                        (fn [i] (* i steps))))))]
+    (->> index
+         (map-indexed
+          (fn [i {:keys [wi] :as v}]
+            (assoc v :goals
+                   (conj (map #(% i) goals) wi)))))))
+
+
 (defn unwrap-date [{:keys [date] :as m}]
   (-> m
       (assoc :timestamp (t/to-millis-from-epoch (t/offset-date-time date 0)))
@@ -125,4 +147,4 @@
 
 (defn prep-report-data [state]
   (assoc state
-         :wi (unwrap-dates (monthly-wealth-index state))))
+         :wi (unwrap-dates (monthly-wi-goals state))))
