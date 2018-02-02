@@ -53,6 +53,7 @@
    :make-deposit ["deposit" "Assets: Depost Into Asset" transaction-params]
    :make-withdrawal ["withdraw" "Assets: Withdraw amount from asset" transaction-params]
    :set-asset-value ["value" "Assets: Set value" [asset-name-param date-param value-param]]
+   :set-asset-values ["values" "Assets: import values. Ex 'values -n psg 2011-11 2000 2011-12 2020" [asset-name-param]]
    :set-date-of-birth ["dob" "WI: Set Bate of Birth for WI Calculations" [dob-param]]
    :add-wealth-index-goal ["add-wi-goal" "WI: Add WI Goal" [name-param age-param units-param]]
    :add-yearly-goal ["add-year-goal" "Goals: Add Year Growth Goal"
@@ -73,7 +74,7 @@
   (pprint/print-table [(select-keys o all-param-keys)])
   (.println console)
   (let [v (read-key "Are these values correct? (y/n) ")]
-    (if (contains? #{"y" "Y" "yes"} v)
+    (if (contains? #{121 89} v)
       (do (f o) (.println console "Done"))
       (.println console "cancel"))))
 
@@ -202,7 +203,8 @@
 (defn commandline [[name detail f options-spec] args]
   (let [options-spec-h (if (contains? (set args) "-h") [help-opt] options-spec)
         options-map (mapv cli-a/option-map options-spec-h)
-        [options _] (cli-a/parse-commandline options-map args)]
+        [options arguments] (cli-a/parse-commandline options-map args)
+        options (assoc options :args arguments)]
     (if (contains? options :h)
       (do
         (.println console "*****")
@@ -220,6 +222,7 @@
              reverse
              (pprint/print-table [:required :short :long :description :type])))
       (f options))))
+
 
 
 ;;todo

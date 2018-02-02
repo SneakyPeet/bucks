@@ -2,6 +2,7 @@
   (:require
    [figwheel-sidecar.repl-api :as f]
    [bucks.bootstrap :as bootstrap]
+   [bucks.core :as bucks]
    [java-time.repl :as jt]))
 
 ;; user is a namespace that the Clojure runtime looks for and
@@ -43,8 +44,16 @@
   []
   (f/cljs-repl))
 
+(def test-file "bucks.store.edn")
 
 (defn load-test-data
   "Hidrates Figwheel with test data from bucks.store.edn"
   []
-  (bootstrap/init-report-index "bucks.store.edn" "resources/public/index.html"))
+  (bootstrap/init-report-index test-file "resources/public/index.html"))
+
+(defn reset-test-data
+  []
+  (spit test-file (pr-str bucks/initial-state)))
+
+;(reset-test-data)
+;(load-test-data)

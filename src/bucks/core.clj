@@ -2,7 +2,9 @@
   (:require [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [slingshot.slingshot :refer [throw+]]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [bucks.queries :as queries]
+            [java-time :as t])
   (:import [java.util Date]))
 
 ;;;; APP
@@ -253,6 +255,31 @@
   (assoc-in state [:yearly-goals year name] (yearly-goal goal)))
 
 
+;;;; IMPORTS
+
+(defn as-timestamp-map [d]
+  (->> (t/local-date "yyyy-MM-dd" d)
+       (assoc {} :date)
+       queries/unwrap-date))
+
+
+(defn set-asset-values [state {:keys [name args]}]
+  (when (odd? (count args)) (throw-validation-error "You should provide an odd amount of values"))
+  (let [values
+        (->> args
+             (partition 2)
+             (map (fn [[d v]]
+                    (-> d
+                        as-timestamp-map
+                        (assoc :value (read-string v)
+                               :name name))))
+             )]
+    (reduce (fn [r v]
+              (set-asset-value r v))
+            state
+            values)))
+
+
 ;;;; COMMANDS
 
 (defmethod apply-command :add-salary [_ & r] (apply add-salary r))
@@ -261,6 +288,7 @@
 (defmethod apply-command :make-deposit [_ & r] (apply make-deposit r))
 (defmethod apply-command :make-withdrawal [_ & r] (apply make-withdrawal r))
 (defmethod apply-command :set-asset-value  [_ & r] (apply set-asset-value r))
+(defmethod apply-command :set-asset-values [_ & r] (apply set-asset-values r))
 (defmethod apply-command :set-date-of-birth [_ & r] (apply set-date-of-birth r))
 (defmethod apply-command :add-wealth-index-goal [_ & r] (apply add-wealth-index-goal r))
 (defmethod apply-command :add-yearly-goal [_ & r] (apply add-yearly-goal r))
