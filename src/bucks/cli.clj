@@ -20,6 +20,7 @@
 
 ;;;; COMMANDS
 
+(def path-param ["p" "path" "Path to file" :string "P" true])
 (def source-param ["s" "source" "The Name of the Source" :string "S" true])
 (def name-param ["n" "name" "Unique Name" :string "N" true])
 (def asset-name-param ["n" "name" "Unique Asset Name" :string "N" true])
@@ -51,9 +52,10 @@
    :close-asset ["close-asset" "Assets: Close. Requires the close value"
                  [asset-name-param date-param withdraw-amount-param note-param]]
    :make-deposit ["deposit" "Assets: Depost Into Asset" transaction-params]
+   :make-deposits ["deposits" "Assets: Import deposits. Ex 'deposts -n psg 2011-11-01 <amount> <value> <units>" [asset-name-param]]
    :make-withdrawal ["withdraw" "Assets: Withdraw amount from asset" transaction-params]
    :set-asset-value ["value" "Assets: Set value" [asset-name-param date-param value-param]]
-   :set-asset-values ["values" "Assets: import values. Ex 'values -n psg 2011-11 2000 2011-12 2020" [asset-name-param]]
+   :set-asset-values ["values" "Assets: import values. Ex 'values -n psg 2011-11-01 2000 2011-12 2020'" [asset-name-param]]
    :set-date-of-birth ["dob" "WI: Set Bate of Birth for WI Calculations" [dob-param]]
    :add-wealth-index-goal ["add-wi-goal" "WI: Add WI Goal" [name-param age-param units-param]]
    :add-yearly-goal ["add-year-goal" "Goals: Add Year Growth Goal"
@@ -170,11 +172,13 @@
 (def base-actions [(quit-opt "q") (quit-opt "e") (quit-opt "quit") (quit-opt "exit")])
 
 
-(defn action-map [dispatch-command query report]
+(defn action-map [dispatch-command query report backup set-backup]
   (let [actions
         (->> commands
              (map (partial prep-command dispatch-command))
              (into base-actions)
+             (into [["backup" "Backup" backup []]
+                    ["set-backup" "Backup: Set Path" set-backup [path-param]]])
              (into (map (partial prep-table-query query) table-queries))
              (map prep-help)
              (into [["report" "Generates the Report" report []]])
@@ -228,8 +232,8 @@
 ;;todo
 ;; parsing functions should be done better
 
-(defn startup [dispatch-command query report]
-  (let [fn-map (action-map dispatch-command query report)]
+(defn startup [dispatch-command query report backup set-backup]
+  (let [fn-map (action-map dispatch-command query report backup set-backup)]
     (do
       (.println console "Welcome to Bucks Asset Tracker")
       (.println console "Type help for a list of commands")

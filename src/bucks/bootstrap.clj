@@ -48,7 +48,14 @@
     (browse-url index)))
 
 
+(defn backup [state]
+  (when-not (contains? state :backup)
+    (c/throw-validation-error "No Backup Location Set"))
+  (spit (:backup state) (pr-str state)))
 
+
+(defn set-backup [state-atom {:keys [path]}]
+  (swap! state-atom #(assoc % :backup path)))
 
 
 (defn startup [store-path]
@@ -56,8 +63,10 @@
         handle-command (fn [command]
                          (swap! *state #(apply-command % command)))
         query (fn [t o] (q/query t @*state o))
-        gen-report (fn [_] (report store-path))]
-    (cli/startup handle-command query gen-report)))
+        gen-report (fn [_] (report store-path))
+        backup (fn [_] (backup @*state))
+        set-backup (fn [o] (set-backup *state o))]
+    (cli/startup handle-command query gen-report backup set-backup)))
 
 
 (defn -main [& args]

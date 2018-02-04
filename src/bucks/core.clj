@@ -142,7 +142,8 @@
                     :assets {}
                     :date-of-birth 471146400000 ;;1984-12-06
                     :wealth-index-goals {}
-                    :yearly-goals {}})
+                    :yearly-goals {}
+                    :backup "/users/pieter/Dropbox/WealthPlanning/bucks-wi.edn"})
 
 
 (defn guard-state [state] (guard ::state state))
@@ -264,7 +265,7 @@
 
 
 (defn set-asset-values [state {:keys [name args]}]
-  (when (odd? (count args)) (throw-validation-error "You should provide an odd amount of values"))
+  (when (odd? (count args)) (throw-validation-error "You should provide an even amount of values"))
   (let [values
         (->> args
              (partition 2)
@@ -274,11 +275,22 @@
                         (assoc :value (read-string v)
                                :name name))))
              )]
-    (reduce (fn [r v]
-              (set-asset-value r v))
-            state
-            values)))
+    (reduce set-asset-value state values)))
 
+(defn make-deposits [state {:keys [name args]}]
+  (when (odd? (count args)) (throw-validation-error "You should provide an even amount of values"))
+  (let [values
+        (->> args
+             (partition 4)
+             (map (fn [[d a v u]]
+                    (-> d
+                        as-timestamp-map
+                        (assoc :value (read-string v)
+                               :name name
+                               :amount (read-string a)
+                               :units (read-string u)))))
+             )]
+    (reduce make-deposit state values)))
 
 ;;;; COMMANDS
 
@@ -286,6 +298,7 @@
 (defmethod apply-command :add-asset  [_ & r] (apply add-asset r))
 (defmethod apply-command :close-asset  [_ & r] (apply close-asset r))
 (defmethod apply-command :make-deposit [_ & r] (apply make-deposit r))
+(defmethod apply-command :make-deposits [_ & r] (apply make-deposits r))
 (defmethod apply-command :make-withdrawal [_ & r] (apply make-withdrawal r))
 (defmethod apply-command :set-asset-value  [_ & r] (apply set-asset-value r))
 (defmethod apply-command :set-asset-values [_ & r] (apply set-asset-values r))
