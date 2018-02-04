@@ -25,6 +25,13 @@
 
   :source-paths ["src"]
 
+  :aliases {"build" ["do"
+                     "clean"
+                     ["cljsbuild" "once" "min"]
+                     ["uberjar"]]}
+  :auto-clean false
+
+
   :cljsbuild {:builds
               [{:id "dev"
                 :source-paths ["src"]
@@ -54,7 +61,7 @@
                 :source-paths ["src"]
                 :compiler {:output-to "resources/public/js/compiled/bucks.js"
                            :main bucks.report
-                           :optimizations :advanced
+                           :optimizations :whitespace
                            :pretty-print false}}]}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
@@ -110,4 +117,7 @@
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
                    ;; need to add the compliled assets to the :clean-targets
                    :clean-targets ^{:protect false} ["resources/public/js/compiled"
-                                                     :target-path]}})
+                                                     :target-path]}
+             :uberjar {:main bucks.bootstrap
+                       :aot [bucks.bootstrap]
+                       :uberjar-name "bucks.jar"}})

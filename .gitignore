@@ -15,3 +15,4 @@ pom.xml
 /bucks.store.edn
 /report/index.html
 /report/css/style.css
+/report/js/compiled/bucks.js

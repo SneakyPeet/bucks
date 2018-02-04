@@ -32,13 +32,13 @@
 
 
 (def report-files ["css/style.css" "js/compiled/bucks.js"])
-(def report-dir "report/")
+(def report-dir "./report/")
 
 
 (defn copy-report-file [path]
   (let [dest (str report-dir path)]
     (io/make-parents dest)
-    (io/copy (io/as-file (str "resources/public/" path)) (io/file dest))))
+    (spit dest (slurp (str "resources/public/" path)))))
 
 
 (defn report [store-path]
