@@ -102,6 +102,11 @@
                                  :axis "horizontal"
                                  :keepInBounds true}} opt)))
 
+(defn draw-pie-chart [id data opt]
+  (draw-chart js/google.visualization.PieChart
+              id data
+              (merge {:pieHole 0.4} opt)))
+
 
 (defn draw-column-chart [id data opt]
   (draw-chart js/google.visualization.ColumnChart id data opt))
@@ -304,6 +309,26 @@
           (str (s-number monthly-growth) "%")]])
       (vals assets))]))
 
+
+(defn asset-distribution-pie [{:keys [assets]}]
+  (draw-pie-chart
+   "asset-dist"
+   (->> assets
+        vals
+        (group-by :asset-type)
+        (map
+         (fn [[k v]]
+           [k (->> v (map :current-value) (reduce + 0))]))
+        (into [["asset" "value"]])
+        data-table)
+   {:title "ASSET DISTRIBUTION"}))
+
+
+(rum/defc asset-distribution < rum/static
+  {:did-mount (wrap-args asset-distribution-pie)}
+  [state]
+  [:div {:id "asset-dist"}])
+
 ;;;; PAGES
 
 
@@ -336,6 +361,7 @@
     (col 2 (wi-guage state))
     (col 6 (wi state))
     (col 4 (net state))
+    (col 3 (asset-distribution state))
     (col 6 (salaries state))
     (col 12 (assets state))
     ]])
