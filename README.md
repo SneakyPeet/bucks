@@ -1,39 +1,38 @@
-# bucks
+# Bucks #
 
-FIXME: Write a one-line description of your library/project.
+Bucks is a command line tool I use to track various financial health indicators like
 
-## Overview
+1. Wealth Index
+2. Yearly Goals
+3. Tax Free Saving Limits
+4. Asset Performance
 
-FIXME: Write a paragraph about the library/project and highlight its goals.
+# How to Run #
 
-## Setup
+With Clojure => `lein run`
 
-To get an interactive development environment run:
+With Java => java -j bucks.jar
 
-    lein figwheel
+# How to Use #
 
-and open your browser at [localhost:3449](http://localhost:3449/).
-This will auto compile and send all changes to the browser without the
-need to reload. After the compilation process is complete, you will
-get a Browser Connected REPL. An easy way to try it is:
+Bucks uses a command line interface. Once running...
 
-    (js/alert "Am I connected?")
+Type `help` to see a list of available actions
 
-and you should see an alert in the browser window.
+for any action type ``action-name -h`` to see a list of parameters ex. `salary -h`.
 
-To clean all compiled files:
+### Report ###
 
-    lein clean
+To view the report type `report`. This will open your browser (only tested in chrome). You will see some warnings if data is missing.
 
-To create a production build run:
+Drag and charts to zoom and right click to reset.
 
-    lein do clean, cljsbuild once min
+### Data ###
 
-And open your browser in `resources/public/index.html`. You will not
-get live reloading, nor a REPL. 
+Add your monthly salary changes and some assets to start seeing data.
 
-## License
+Capture any deposits or withdrawals against assets (including the asset value after).
 
-Copyright © 2014 FIXME
+Every month or so set your asset values (using `value` function).
 
-Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version.
+Add some yearly and wealth index goals to track performance.

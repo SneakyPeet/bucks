@@ -94,7 +94,7 @@
        (sort-by :date)))
 
 
-(defn wi [net salary age] (/ (/ net salary) (/ age 10)))
+(defn wi [net salary age] (/ (/ net (* 12 salary)) (/ age 10)))
 
 
 (defn monthly-wealth-index [state]
@@ -145,6 +145,24 @@
 (defn unwrap-dates [coll] (map unwrap-date coll))
 
 
+(defn growth-percentage [start end]
+  (if-not (and (number? start) (number? end) (not= 0 end) (not= 0 start))
+    (* 100 (/ start end))
+    0))
+
 (defn prep-report-data [state]
-  (assoc state
-         :wi (unwrap-dates (monthly-wi-goals state))))
+  (let [index (monthly-wi-goals state)
+        this-year (t/local-date (:year (t/as-map (t/local-date))))
+        monthly-growth (->> index (take-last 2) (map :net) (apply growth-percentage))
+        yearly-growth (->> index
+                           (filter #(t/before? this-year (:date %)))
+                           (#(vec [(first %) (last %)]))
+                           (map :net)
+                           (apply growth-percentage))
+        current (assoc (last index)
+                       :monthly-growth monthly-growth
+                       :yearly-growth yearly-growth)]
+    (prn yearly-growth)
+    (assoc state
+           :wi (unwrap-dates index)
+           :current (unwrap-date current))))

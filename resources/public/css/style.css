@@ -1,2 +1,10 @@
 /* some style */
 
+html {
+  background-color: #1d1e1e;
+}
+
+.box {
+  height: 100%;
+  background-color: #303030;
+}

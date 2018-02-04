@@ -1,6 +1,8 @@
 (ns bucks.report
   (:require [cljs.reader :as reader]
-            [rum.core :as rum]))
+            [rum.core :as rum]
+            [goog.string :as gstring]
+            [goog.string.format]))
 
 (enable-console-print!)
 
@@ -17,6 +19,10 @@
 (defn page [p] (swap! *state #(assoc % :page p)))
 
 
+(def number-formatter (js/Intl.NumberFormat.))
+
+(defn s-number [v] (.format number-formatter v))
+
 ;;;; CHARTS
 
 
@@ -30,11 +36,25 @@
 
 (def chart-options clj->js)
 
+(def chart-base-color "#dbdbdb")
+
 (defn draw-chart [Chart id data opt]
-  (.draw
-   (Chart.
-    (.getElementById js/document id))
-   data (chart-options opt)))
+  (let [opt (merge
+             {:animation {:startup true :duration 2000 :easing "out"}
+              :colors ["#00d1b2" "#ff385f" "#ffde56" "#3372dd"]
+              :backgroundColor "none"
+              :legend {:textStyle {:color chart-base-color}
+                       :position "bottom"}
+              :titleTextStyle {:color chart-base-color}
+              :hAxis {:gridlines {:color "none"}
+                      :textStyle {:color chart-base-color}}
+              :vAxis {:gridlines {:color chart-base-color}
+                      :textStyle {:color chart-base-color}}}
+             opt)]
+    (.draw
+     (Chart.
+      (.getElementById js/document id))
+     data (chart-options opt))))
 
 
 (defn draw-annotation-chart [id data opt]
@@ -74,9 +94,9 @@
              (map
               (fn [{:keys [timestamp value source]}]
                 [(js/Date. timestamp) value source]))
-             (into [["Date" "Value" {:type "string" :role "annotation"}]])
+             (into [["date" "value" {:type "string" :role "annotation"}]])
              data-table)
-        opt {:title "Salary"
+        opt {:title "SALARY"
              :height 250
              :annotations {"Source" {:style "line"}}}]
     (draw-line-chart "salary-chart" data opt)))
@@ -94,7 +114,7 @@
   (let [headings (->> wealth-index-goals
                       vals
                       (map :name)
-                      (concat ["Date" "WI"]))]
+                      (concat ["date" "wealth index"]))]
     (draw-line-chart
      "wi-chart"
      (->> wi
@@ -103,7 +123,8 @@
                  (conj goals (js/Date. timestamp))))
           (into [headings])
           data-table)
-     {:height 250})))
+     {:title  "WEALTH INDEX"
+      :height 250})))
 
 
 (rum/defc wi < rum/static
@@ -146,14 +167,16 @@
    (->> wi
         (take-last 5)
         (map (juxt #(js/Date. (:timestamp %)) :net))
-        (into [["Month" "Value"]])
+        (into [["month" "value"]])
         data-table)
-   {:bars "vertical"}))
+   {:title "GROWTH"
+    :bars "vertical"}))
 
 (rum/defc net < rum/static
   {:did-mount (wrap-args net-bar)}
   [state]
   [:div {:id "net-bar"}])
+
 
 ;;;; PAGES
 
@@ -169,13 +192,29 @@
   [:strong "loading"])
 
 
-(defmethod render-page :home [state]
-  [:div.columns.is-multiline
-   [:div.column.is-2.box
-    (wi-guage state)]
-   [:div.column.is-4.box (net state)]
-   [:div.column.is-6.box (wi state)]
-   [:div.column.is-6.box (salaries state)]])
+(defn col [size & children]
+  [:div.column {:class (str "is-" size)}
+   [:div.box.is-shadowless.has-text-grey-lighter
+    children]])
+
+
+(defn info-box [t info]
+  [:div.has-text-centered
+   [:p.heading t]
+   [:p.title.has-text-primary info]])
+
+
+(defmethod render-page :home [{:keys [current] :as state}]
+  [:div
+   [:div.columns.is-multiline.is-centered
+    (col 3 (info-box "WEALTH INDEX" (s-number (:wi current))))
+    (col 3 (info-box "NET" (s-number (:net current))))
+    (col 3 (info-box "MONTH TO DATE" (str (s-number (:monthly-growth current)) "%")))
+    (col 3 (info-box "YEAR TO DATE" (str (s-number (:yearly-growth current)) "%")))
+    (col 2 (wi-guage state))
+    (col 6 (wi state))
+    (col 4 (net state))
+    (col 6 (salaries state))]])
 
 
 ;;;;APP
