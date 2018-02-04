@@ -126,9 +126,9 @@
                    (map
                     (fn [{:keys [age units]}]
                       (let [goal-date (t/plus dob (t/years age))
-                            months (t/time-between dob goal-date :months)
+                            months (t/time-between (:date start) goal-date :months)
                             steps (/ (- units value) months)]
-                        (fn [i] (* i steps))))))]
+                        (fn [i] (+ value (* i steps)))))))]
     (->> index
          (map-indexed
           (fn [i {:keys [wi] :as v}]
@@ -150,6 +150,56 @@
     (* 100 (/ start end))
     0))
 
+
+(defn with-running-total [transactions]
+  (loop [transactions transactions
+         total 0
+         result []]
+    (if (empty? transactions)
+      (sort-by :timestamp result)
+      (let [t (first transactions)
+            new-total (+ total (:amount t))
+            transaction (-> t
+                            (assoc :sum new-total)
+                            (update :timestamp inc))
+            previous-level (assoc t
+                                  :sum total
+                                  :transaction-type :chart-helper)]
+        (recur
+         (rest transactions)
+         new-total
+         (into result
+               [previous-level transaction]))))))
+
+
+(defn prep-asset [{:keys [asset-values transactions] :as asset}]
+  (let [asset-values (sort-by :timestamp asset-values)
+        current-value (:value (last asset-values))
+        helper-transaction (assoc (last asset-values) :amount 0 :transaction-type :chart-helper)
+        transactions (->> (conj transactions helper-transaction)
+                          (map
+                           (fn [{:keys [transaction-type] :as t}]
+                             (if (= transaction-type :withdrawal)
+                               (update t :amount #(* -1 %))
+                               t)))
+                          (sort-by :timestamp)
+                          with-running-total)
+        monthly-values (with-last-monthy-values asset-values)
+        monthly-growth (->> monthly-values
+                            (take-last 2)
+                            (map :value)
+                            (apply growth-percentage))]
+    (assoc asset
+           :assets-values asset-values
+           :monthly-growth monthly-growth
+           :current-value current-value
+           :total-contrib (->> transactions
+                               (filter #(not= :chart-helper (:transaction-type %)))
+                               (map :amount)
+                               (reduce + 0))
+           :transactions transactions)))
+
+
 (defn prep-report-data [state]
   (let [index (monthly-wi-goals state)
         this-year (t/local-date (:year (t/as-map (t/local-date))))
@@ -161,8 +211,12 @@
                            (apply growth-percentage))
         current (assoc (last index)
                        :monthly-growth monthly-growth
-                       :yearly-growth yearly-growth)]
-    (prn yearly-growth)
+                       :yearly-growth yearly-growth)
+        assets (->> (:assets state)
+                    (map (fn [[k v]]
+                           [k (prep-asset v)]))
+                    (into {}))]
     (assoc state
            :wi (unwrap-dates index)
-           :current (unwrap-date current))))
+           :current (unwrap-date current)
+           :assets assets)))

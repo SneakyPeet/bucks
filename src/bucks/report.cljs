@@ -16,12 +16,41 @@
     (reader/read-string (.. js/window -BUCKS)))))
 
 
+(defmulti render-page (fn [state] (:page state)))
+
+
 (defn page [p] (swap! *state #(assoc % :page p)))
+
+
+(defmulti render-modal (fn [state] (:modal state)))
+
+
+(defmethod render-modal :default [_] [:span])
+
+
+(defn hide-modal [] (swap! *state #(dissoc % :modal)))
+
+
+(defn show-asset [n]
+  (swap! *state #(assoc %
+                        :modal :asset
+                        :asset n)))
 
 
 (def number-formatter (js/Intl.NumberFormat.))
 
+
 (defn s-number [v] (.format number-formatter v))
+
+
+(defn date [m] (js/Date. (:timestamp m)))
+
+
+(defn info-box [t info]
+  [:div.has-text-centered
+   [:p.heading t]
+   [:p.title.has-text-primary info]])
+
 
 ;;;; CHARTS
 
@@ -49,7 +78,8 @@
               :hAxis {:gridlines {:color "none"}
                       :textStyle {:color chart-base-color}}
               :vAxis {:gridlines {:color chart-base-color}
-                      :textStyle {:color chart-base-color}}}
+                      :textStyle {:color chart-base-color}}
+              :height 250}
              opt)]
     (.draw
      (Chart.
@@ -113,8 +143,8 @@
 (defn wealth-index-over-time [{:keys [wi wealth-index-goals]}]
   (let [headings (->> wealth-index-goals
                       vals
-                      (map :name)
-                      (concat ["date" "wealth index"]))]
+                      (map (fn [{:keys [age units]}] (str units "@" age)))
+                      (concat ["date" "actual"]))]
     (draw-line-chart
      "wi-chart"
      (->> wi
@@ -166,7 +196,7 @@
    "net-bar"
    (->> wi
         (take-last 5)
-        (map (juxt #(js/Date. (:timestamp %)) :net))
+        (map (juxt date :net))
         (into [["month" "value"]])
         data-table)
    {:title "GROWTH"
@@ -178,9 +208,103 @@
   [:div {:id "net-bar"}])
 
 
-;;;; PAGES
+;;;; ASSETS
 
-(defmulti render-page (fn [state] (:page state)))
+(def no-value (constantly nil))
+
+
+(defn asset-growth-chart [{:keys [transactions asset-values]}]
+  (let [asset-data (fn [{:keys [transaction-type] :as t}]
+                     (cond
+                       (nil? transaction-type)
+                       ((juxt date :value no-value no-value) t)
+                       (not= :chart-helper transaction-type)
+                       ((juxt date no-value :sum
+                              (fn [{:keys [amount sum]}]
+                                (str "Contrib Amount:" (s-number amount) " Total: " (s-number sum))))
+                        t)
+                       :else
+                       ((juxt date no-value :sum
+                              (fn [{:keys [amount sum]}]
+                                (str "Contrib Amount:" (s-number amount) " Total: " (s-number (+ sum amount)))))
+                        t)
+                       ))]
+    (draw-line-chart
+     "asset-growth"
+     (->> (concat transactions asset-values)
+          (sort-by :timestamp)
+          (map asset-data)
+          (into [["date" "value" "total-contribution"
+                  {:label nil :role "tooltip"}]])
+          data-table)
+     {:title "GROWTH"
+      :height 400
+      :interpolateNulls true})))
+
+
+(rum/defc asset-growth < rum/static
+  {:did-mount (wrap-args asset-growth-chart)}
+  [asset]
+  [:div {:id "asset-growth"}])
+
+
+(rum/defc asset-history < rum/static
+  [{:keys [transactions asset-values]}]
+  [:table.table.is-narrow.is-fullwidth
+   [:tbody
+    (map-indexed
+     (fn [i {:keys [transaction-type amount value timestamp]}]
+        (if transaction-type
+          [:tr {:key i}
+           [:td (.toLocaleDateString (js/Date. timestamp))]
+           [:td (name transaction-type)]
+           [:td
+            {:class (if (> amount 0) "has-text-primary" "has-text-danger")}
+            (s-number amount)]]
+          [:tr {:key i}
+           [:td (.toLocaleDateString (js/Date. timestamp))]
+           [:td "value adjust"]
+           [:td (s-number value)]]))
+     (->> transactions
+          (filter #(not= :chart-helper (:transaction-type %)))
+          (concat asset-values)
+          (sort-by :timestamp)
+          reverse))]])
+
+
+(defmethod render-modal :asset [state]
+  (let [asset (get-in state [:assets (:asset state)])
+        {:keys [name total-contrib current-value asset-type]} asset]
+    [:div.modal.is-active
+     [:div.modal-background {:on-click hide-modal}]
+     [:div.modal-content.box.
+      [:h1.title.has-text-primary.has-text-centered name " (" asset-type ")"]
+      (asset-growth asset)
+      [:div.level
+       [:div.level-item (info-box "Contrib" (s-number total-contrib))]
+       [:div.level-item (info-box "Growth" (s-number (- current-value total-contrib)))]
+       [:div.level-item (info-box "Value" (s-number current-value))]]
+      (asset-history asset)]
+     [:button.modal-close.is-large {:on-click hide-modal}]]))
+
+
+(rum/defc assets < rum/static
+  [{:keys [assets]}]
+  (let [assets (filter (comp not :closed?) assets)
+        closed-assets (filter :closed? assets)]
+    [:div.columns.is-multiline.is-centered
+     (map-indexed
+      (fn [i {:keys [name asset-type current-value monthly-growth]}]
+        [:div.column.is-2.has-text-centered.asset-button
+         {:key i :on-click #(show-asset name)}
+         [:p.heading.has-text-primary name]
+         [:p.heading asset-type]
+         [:p.heading (s-number current-value)]
+         [:p.heading {:class (if (> monthly-growth 0) "has-text-primary" "has-text-danger")}
+          (str (s-number monthly-growth) "%")]])
+      (vals assets))]))
+
+;;;; PAGES
 
 
 (defmethod render-page :default [state]
@@ -189,7 +313,9 @@
 
 (defmethod render-page :loading [state]
   (load-charts)
-  [:strong "loading"])
+  [:div
+   [:h1.title.has-text-primary.has-text-centered "Loading all the Things"]
+   [:h2.subtitle.has-text-primary.has-text-centered "(╯°□°）╯︵ ┻━┻"]])
 
 
 (defn col [size & children]
@@ -198,14 +324,10 @@
     children]])
 
 
-(defn info-box [t info]
-  [:div.has-text-centered
-   [:p.heading t]
-   [:p.title.has-text-primary info]])
-
 
 (defmethod render-page :home [{:keys [current] :as state}]
   [:div
+   (render-modal state)
    [:div.columns.is-multiline.is-centered
     (col 3 (info-box "WEALTH INDEX" (s-number (:wi current))))
     (col 3 (info-box "NET" (s-number (:net current))))
@@ -214,7 +336,9 @@
     (col 2 (wi-guage state))
     (col 6 (wi state))
     (col 4 (net state))
-    (col 6 (salaries state))]])
+    (col 6 (salaries state))
+    (col 12 (assets state))
+    ]])
 
 
 ;;;;APP

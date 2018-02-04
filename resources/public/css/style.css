@@ -8,3 +8,25 @@ html {
   height: 100%;
   background-color: #303030;
 }
+
+.asset-button {
+  cursor: pointer;
+}
+
+.asset-button {
+  border: solid 1px #303030;
+}
+
+.asset-button:hover {
+  border: solid #00d2b2 1px;
+  border-radius: 5px;
+}
+
+.table {
+  background-color: transparent;
+  color: #cecece;
+}
+
+.level {
+  color:  #cecece;
+}
