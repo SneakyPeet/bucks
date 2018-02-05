@@ -43,6 +43,9 @@
 (defn s-number [v] (.format number-formatter v))
 
 
+(defn s-percent [v] (str (s-number v) "%"))
+
+
 (defn date [m] (js/Date. (:timestamp m)))
 
 
@@ -80,11 +83,9 @@
               :vAxis {:gridlines {:color chart-base-color}
                       :textStyle {:color chart-base-color}}
               :height 250}
-             opt)]
-    (.draw
-     (Chart.
-      (.getElementById js/document id))
-     data (chart-options opt))))
+             opt)
+        chart (Chart. (.getElementById js/document id))]
+    (.draw chart data (chart-options opt))))
 
 
 (defn draw-annotation-chart [id data opt]
@@ -200,7 +201,7 @@
   (draw-column-chart
    "net-bar"
    (->> wi
-        (take-last 5)
+        (take-last 12)
         (map (juxt date :net))
         (into [["month" "value"]])
         data-table)
@@ -279,7 +280,8 @@
 
 (defmethod render-modal :asset [state]
   (let [asset (get-in state [:assets (:asset state)])
-        {:keys [name total-contrib current-value asset-type]} asset]
+        {:keys [name total-contrib current-value asset-type
+                monthly-growth yearly-growth overall-growth]} asset]
     [:div.modal.is-active
      [:div.modal-background {:on-click hide-modal}]
      [:div.modal-content.box.
@@ -289,6 +291,11 @@
        [:div.level-item (info-box "Contrib" (s-number total-contrib))]
        [:div.level-item (info-box "Growth" (s-number (- current-value total-contrib)))]
        [:div.level-item (info-box "Value" (s-number current-value))]]
+      [:div.level
+       [:div.level-item (info-box "Month To Date" (s-percent monthly-growth))]
+       [:div.level-item (info-box "Year To Date" (s-percent yearly-growth))]
+       [:div.level-item (info-box "All Time" (s-percent overall-growth))]]
+
       (asset-history asset)]
      [:button.modal-close.is-large {:on-click hide-modal}]]))
 
@@ -359,9 +366,9 @@
     (col 3 (info-box "MONTH TO DATE" (str (s-number (:monthly-growth current)) "%")))
     (col 3 (info-box "YEAR TO DATE" (str (s-number (:yearly-growth current)) "%")))
     (col 2 (wi-guage state))
-    (col 6 (wi state))
-    (col 4 (net state))
     (col 3 (asset-distribution state))
+    (col 7 (net state))
+    (col 6 (wi state))
     (col 6 (salaries state))
     (col 12 (assets state))
     ]])

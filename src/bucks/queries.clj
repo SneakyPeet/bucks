@@ -146,8 +146,8 @@
 
 
 (defn growth-percentage [start end]
-  (if-not (and (number? start) (number? end) (not= 0 end) (not= 0 start))
-    (* 100 (/ start end))
+  (if (and (number? start) (number? end) (not= 0 end) (not= 0 start))
+    (* 100 (- (/ end start) 1))
     0))
 
 
@@ -172,8 +172,12 @@
                [previous-level transaction]))))))
 
 
+(defn get-current-year [] (t/local-date (:year (t/as-map (t/local-date)))))
+
+
 (defn prep-asset [{:keys [asset-values transactions] :as asset}]
   (let [asset-values (sort-by :timestamp asset-values)
+        this-year (get-current-year)
         current-value (:value (last asset-values))
         helper-transaction (assoc (last asset-values) :amount 0 :transaction-type :chart-helper)
         transactions (->> (conj transactions helper-transaction)
@@ -188,10 +192,21 @@
         monthly-growth (->> monthly-values
                             (take-last 2)
                             (map :value)
+                            (apply growth-percentage))
+        yearly-growth (->> monthly-values
+                           (filter #(t/before? this-year (:date %)))
+                           (#(vec [(first %) (last %)]))
+                           (map :value)
+                           (apply growth-percentage))
+        overall-growth (->> monthly-values
+                            (#(vec [(first %) (last %)]))
+                            (map :value)
                             (apply growth-percentage))]
     (assoc asset
            :assets-values asset-values
            :monthly-growth monthly-growth
+           :yearly-growth yearly-growth
+           :overall-growth overall-growth
            :current-value current-value
            :total-contrib (->> transactions
                                (filter #(not= :chart-helper (:transaction-type %)))
@@ -202,7 +217,7 @@
 
 (defn prep-report-data [state]
   (let [index (monthly-wi-goals state)
-        this-year (t/local-date (:year (t/as-map (t/local-date))))
+        this-year (get-current-year)
         monthly-growth (->> index (take-last 2) (map :net) (apply growth-percentage))
         yearly-growth (->> index
                            (filter #(t/before? this-year (:date %)))
