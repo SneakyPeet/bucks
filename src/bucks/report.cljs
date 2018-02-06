@@ -351,8 +351,9 @@
 (rum/defc goal-table [monthly-values goal-start goals]
   [:table.table.is-narrow.is-fullwidth
    [:thead
+    [:tr [:th.has-text-centered {:col-span (+ 2 (count goals))} "Monthly Targets"]]
     [:tr
-     [:th "Month"] [:th "Growth"]
+     [:th "Month"] [:th "Actual"]
      (map-indexed
       (fn [i {:keys [name percentage]}]
         [:th {:key i} name " (" (s-percent percentage) ")"])
