@@ -66,7 +66,7 @@
        (map with-date)
        (group-by year-month)
        (map (fn [[k v]]
-              {:date (apply t/local-date k)
+              {:date (-> (apply t/local-date k) (t/plus (t/months 1)) (t/plus (t/days -1)))
                :value (->> v (sort-by :timestamp) last :value)}))
        monthly-values))
 
@@ -215,6 +215,52 @@
            :transactions transactions)))
 
 
+(defn prep-yearly-goals [year goals monthly-values]
+  (let [year-date  (t/local-date year)
+        start      (t/plus year-date (t/days -1))
+        end        (t/plus year-date (t/years 1))
+        values     (filter
+                    (fn [{:keys [date]}]
+                      (and (t/before? date end) (t/before? start date)))
+                    monthly-values)
+        limits     [(first values) (last values)]
+        goal-start (->> monthly-values
+                        (filter #(t/before? (:date %) year-date))
+                        last
+                        (#(get % :net (get (first values) :net 0))))
+        growth     (->> monthly-values
+                        last
+                        :net
+                        (growth-percentage goal-start))
+        goals      (->> goals
+                        (map
+                         (fn [{:keys [percentage] :as goal}]
+                           (let [goal-end  (* goal-start (/ (+ 100 percentage) 100))
+                                 growth    (- goal-end goal-start)
+                                 per-month (/ growth 12)]
+                             (assoc goal
+                                    :per-month per-month
+                                    :start goal-start
+                                    :end goal-end
+                                    :growth growth)))))]
+    {:year  year
+     :goal-start goal-start
+     :goals (->> goals (sort-by :percentage) reverse)
+     :monthly-values (unwrap-dates values)
+     :net (->> limits
+               (map :net)
+               reverse
+               (apply -))
+     :wi-growth (->> limits
+                     (map :wi)
+                     reverse
+                     (apply -))
+     :salary-growth (->> limits
+                         (map :salary)
+                         (apply growth-percentage))
+     :growth growth}))
+
+
 (defn prep-report-data [state]
   (let [index (monthly-wi-goals state)
         this-year (get-current-year)
@@ -230,8 +276,14 @@
         assets (->> (:assets state)
                     (map (fn [[k v]]
                            [k (prep-asset v)]))
-                    (into {}))]
+                    (into {}))
+        yearly-goals (->> state
+                          :yearly-goals
+                          (map (fn [[year goals]]
+                                 [year (prep-yearly-goals year (vals goals) index)]))
+                          (into {}))]
     (assoc state
            :wi (unwrap-dates index)
            :current (unwrap-date current)
-           :assets assets)))
+           :assets assets
+           :yearly-goals yearly-goals)))

@@ -37,6 +37,12 @@
                         :asset n)))
 
 
+(defn show-year [y]
+  (swap! *state #(assoc %
+                        :modal :yearly
+                        :year y)))
+
+
 (def number-formatter (js/Intl.NumberFormat.))
 
 
@@ -47,6 +53,10 @@
 
 
 (defn date [m] (js/Date. (:timestamp m)))
+
+
+(defn pos-neg-class [v]
+  (if (neg? v) "has-text-danger" "has-text-primary"))
 
 
 (defn info-box [t info]
@@ -284,8 +294,8 @@
                 monthly-growth yearly-growth overall-growth]} asset]
     [:div.modal.is-active
      [:div.modal-background {:on-click hide-modal}]
-     [:div.modal-content.box.
-      [:h1.title.has-text-primary.has-text-centered name " (" asset-type ")"]
+     [:div.modal-content.box
+      [:h1.title.has-text-light.has-text-centered name " (" asset-type ")"]
       (asset-growth asset)
       [:div.level
        [:div.level-item (info-box "Contrib" (s-number total-contrib))]
@@ -336,8 +346,141 @@
   [state]
   [:div {:id "asset-dist"}])
 
-;;;; PAGES
 
+;;;; GOALS
+(rum/defc goal-table [monthly-values goal-start goals]
+  [:table.table.is-narrow.is-fullwidth
+   [:thead
+    [:tr
+     [:th "Month"] [:th "Growth"]
+     (map-indexed
+      (fn [i {:keys [name percentage]}]
+        [:th {:key i} name " (" (s-percent percentage) ")"])
+      goals)
+     ]]
+   [:tbody
+    (map-indexed
+     (fn [i {:keys [net timestamp]}]
+       (let [prev-net (if (= 0 i)
+                        goal-start
+                        (:net (nth monthly-values (- i 1))))
+             diff      (- net prev-net)]
+         [:tr {:key i}
+          [:td (+ 1 (.getMonth (js/Date. timestamp)))]
+          [:td diff]
+          (map-indexed
+           (fn [j {:keys [per-month]}]
+             (let [growth (+ (- per-month) diff)]
+               [:td.has-text-center
+                {:key (str "f" j)
+                 :class (if (neg? growth) "has-text-danger" "has-text-primary")}
+                (s-number growth)]))
+           goals)]))
+     monthly-values)]])
+
+
+(defn goal-chart [{:keys [year goals goal-start monthly-values]}]
+  (draw-line-chart
+   "goal-chart"
+   (->> (conj monthly-values {:net goal-start :timestamp (.getTime (js/Date. year 0 1))})
+        (map
+         (fn [{:keys [timestamp net]}]
+           (into
+            [(js/Date. timestamp) (- net goal-start)]
+            (map (constantly nil) goals))))
+        (into
+         (map-indexed
+          (fn [i _]
+            (concat
+             [(js/Date. year 0 1) nil]
+             (map (constantly nil) (range i))
+             [0]
+             (map (constantly nil) (range (- (count goals) (+ 1 i))))))
+          goals))
+        (into
+         (map-indexed
+          (fn [i {:keys [end]}]
+            (concat
+             [(js/Date. year 11 31) nil]
+             (map (constantly nil) (range i))
+             [(- end goal-start)]
+             (map (constantly nil) (range (- (count goals) (+ 1 i))))))
+          goals))
+        (into [(concat ["Date" "Value"] (map :name goals))])
+        data-table)
+   {:title "Goals"
+    :interpolateNulls true}))
+
+
+(rum/defc goal-charts < rum/static
+  {:did-mount (wrap-args goal-chart)}
+  [yearly]
+  [:div {:id "goal-chart"}])
+
+
+(defn goal-expectations [{:keys [goals net]}]
+  [:div.level
+   [:div.level-item
+    [:div.has-text-centered
+     [:p.heading "Actual"]
+     [:p.title.has-text-light (s-number net)]]]
+   (map-indexed
+    (fn [i {:keys [name growth]}]
+      [:div.level-item {:key i}
+       [:div.has-text-centered
+        [:p.heading name]
+        [:p.title {:class (if (>= net growth) "has-text-primary" "has-text-danger")}
+         (s-number growth)]]])
+    goals)])
+
+
+(defn goal-overview [{:keys [growth wi-growth salary-growth]}]
+  [:div.level
+   [:div.level-item
+    [:div.has-text-centered
+     [:p.heading "YTD"]
+     [:p.title
+      {:class (pos-neg-class growth)}
+      (s-percent growth)]]]
+   [:div.level-item
+    [:div.has-text-centered
+     [:p.heading "WI"]
+     [:p.title
+      {:class (pos-neg-class wi-growth)}
+      (s-number wi-growth)]]]
+   [:div.level-item
+    [:div.has-text-centered
+     [:p.heading "Salary"]
+     [:p.title
+      {:class (pos-neg-class salary-growth)}
+      (s-percent salary-growth)]]]])
+
+
+(defmethod render-modal :yearly [state]
+  (let [{:keys [year goals growth monthly-values goal-start] :as yearly}
+        (get-in state [:yearly-goals (:year state)])]
+    [:div.modal.is-active
+     [:div.modal-background {:on-click hide-modal}]
+     [:div.modal-content.box
+      [:h1.title.has-text-light.has-text-centered year]
+      (goal-overview yearly)
+      (goal-charts yearly)
+      (goal-expectations yearly)
+      (goal-table monthly-values goal-start goals)
+     [:button.modal-close.is-large {:on-click hide-modal}]]]))
+
+
+(rum/defc goals < rum/static
+  [{:keys [yearly-goals]}]
+  [:div.columns.is-multiline.is-centered
+   (map-indexed
+    (fn [i year]
+      [:div.column.is-1.has-text-centered.asset-button
+       {:key i :on-click #(show-year year)}
+       [:p.title.is-5 year]])
+    (keys yearly-goals))])
+
+;;;; PAGES
 
 (defmethod render-page :default [state]
   [:strong "No renderer for page " (str (:page state))])
@@ -370,6 +513,7 @@
     (col 7 (net state))
     (col 6 (wi state))
     (col 6 (salaries state))
+    (col 12 (goals state))
     (col 12 (assets state))
     ]])
 
