@@ -80,6 +80,10 @@
 
 (def chart-base-color "#dbdbdb")
 
+(def explorer-opt {:explorer {:actions ["dragToZoom" "rightClickToReset"]
+                              :axis "horizontal"
+                              :keepInBounds true}})
+
 (defn draw-chart [Chart id data opt]
   (let [opt (merge
              {:animation {:startup true :duration 2000 :easing "out"}
@@ -109,9 +113,14 @@
 (defn draw-line-chart [id data opt]
   (draw-chart js/google.visualization.LineChart
               id data
-              (merge {:explorer {:actions ["dragToZoom" "rightClickToReset"]
-                                 :axis "horizontal"
-                                 :keepInBounds true}} opt)))
+              (merge explorer-opt opt)))
+
+
+(defn draw-area-chart [id data opt]
+  (draw-chart js/google.visualization.AreaChart
+              id data
+              (merge explorer-opt {:areaOpacity 0.1} opt)))
+
 
 (defn draw-pie-chart [id data opt]
   (draw-chart js/google.visualization.PieChart
@@ -161,7 +170,7 @@
                       vals
                       (map (fn [{:keys [age units]}] (str units "@" age)))
                       (concat ["date" "actual"]))]
-    (draw-line-chart
+    (draw-area-chart
      "wi-chart"
      (->> wi
           (sort-by :timestamp)
@@ -170,7 +179,8 @@
           (into [headings])
           data-table)
      {:title  "WEALTH INDEX"
-      :height 250})))
+      :height 250
+      :series {1 {:areaOpacity 0}}})))
 
 
 (rum/defc wi < rum/static
@@ -207,21 +217,19 @@
 
 ;; NET
 
-(defn net-bar [{:keys [wi]}]
-  (draw-column-chart
-   "net-bar"
+(defn net-chart [{:keys [wi]}]
+  (draw-area-chart
+   "net-chart"
    (->> wi
-        (take-last 12)
         (map (juxt date :net))
         (into [["month" "value"]])
         data-table)
-   {:title "GROWTH"
-    :bars "vertical"}))
+   {:title "GROWTH"}))
 
 (rum/defc net < rum/static
-  {:did-mount (wrap-args net-bar)}
+  {:did-mount (wrap-args net-chart)}
   [state]
-  [:div {:id "net-bar"}])
+  [:div {:id "net-chart"}])
 
 
 ;;;; ASSETS
@@ -245,7 +253,7 @@
                                 (str "Contrib Amount:" (s-number amount) " Total: " (s-number (+ sum amount)))))
                         t)
                        ))]
-    (draw-line-chart
+    (draw-area-chart
      "asset-growth"
      (->> (concat transactions asset-values)
           (sort-by :timestamp)
@@ -381,7 +389,14 @@
 
 
 (defn goal-chart [{:keys [year goals goal-start monthly-values]}]
-  (draw-line-chart
+  (prn  {:title "Goals"
+         :interpolateNulls true
+         :series (->> goals
+                      (map-indexed
+                       (fn [i _]
+                         [(inc 1) {:areaOpacity 2}]))
+                      (into {}))})
+  (draw-area-chart
    "goal-chart"
    (->> (conj monthly-values {:net goal-start :timestamp (.getTime (js/Date. year 0 1))})
         (map
@@ -410,7 +425,12 @@
         (into [(concat ["Date" "Value"] (map :name goals))])
         data-table)
    {:title "Goals"
-    :interpolateNulls true}))
+    :interpolateNulls true
+    :series (->> goals
+                 (map-indexed
+                  (fn [i _]
+                    [(inc i) {:areaOpacity 0}]))
+                 (into {}))}))
 
 
 (rum/defc goal-charts < rum/static
