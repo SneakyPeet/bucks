@@ -389,13 +389,6 @@
 
 
 (defn goal-chart [{:keys [year goals goal-start monthly-values]}]
-  (prn  {:title "Goals"
-         :interpolateNulls true
-         :series (->> goals
-                      (map-indexed
-                       (fn [i _]
-                         [(inc 1) {:areaOpacity 2}]))
-                      (into {}))})
   (draw-area-chart
    "goal-chart"
    (->> (conj monthly-values {:net goal-start :timestamp (.getTime (js/Date. year 0 1))})
@@ -438,6 +431,31 @@
   [yearly]
   [:div {:id "goal-chart"}])
 
+
+(defn goal-transactions-chart [{:keys [monthly-values goal-start]}]
+  (draw-column-chart
+   "goal-transactions"
+   (->> monthly-values
+        (map-indexed
+         (fn [i {:keys [timestamp net transaction-amount]}]
+           (let [prev-net (if (= 0 i) goal-start (:net (nth monthly-values (dec i))))
+                 growth (- net prev-net)
+                 self-growth (- growth transaction-amount)]
+             (if (= transaction-amount (- self-growth))
+               [(js/Date. timestamp) 0 0]
+               [(js/Date. timestamp) transaction-amount self-growth]))))
+        (into [["date" "transactions" "growth"]])
+        data-table)
+   {:title "Contributions"
+    :isStacked true
+    :colors ["#ffde56" "#3372dd"]
+    :trendlines {0 {:color "#00ffd4"}}}))
+
+
+(rum/defc goal-transactions < rum/static
+  {:did-mount (wrap-args goal-transactions-chart)}
+  [yearly]
+  [:div {:id "goal-transactions"}])
 
 (defn goal-expectations [{:keys [goals net]}]
   [:div.level
@@ -487,6 +505,7 @@
       (goal-overview yearly)
       (goal-charts yearly)
       (goal-expectations yearly)
+      (goal-transactions yearly)
       (goal-table monthly-values goal-start goals)
      [:button.modal-close.is-large {:on-click hide-modal}]]]))
 

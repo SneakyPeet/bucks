@@ -60,15 +60,33 @@
             result
             (recur next-month next-value next-changes next-result)))))))
 
+(defn end-of-month [d] (-> d (t/plus (t/months 1)) (t/plus (t/days -1))))
 
 (defn with-last-monthy-values [values]
   (->> values
        (map with-date)
        (group-by year-month)
        (map (fn [[k v]]
-              {:date (-> (apply t/local-date k) (t/plus (t/months 1)) (t/plus (t/days -1)))
+              {:date (apply t/local-date k)
                :value (->> v (sort-by :timestamp) last :value)}))
        monthly-values))
+
+
+(defn with-montly-transactions [transactions]
+  (->> transactions
+       (map with-date)
+       (group-by year-month)
+       (map (fn [[k v]]
+              {:date (apply t/local-date k)
+               :amount (->> v
+                            (map
+                             (fn [{:keys [transaction-type amount]}]
+                               (if (= :withdrawal transaction-type)
+                                 (- amount)
+                                 amount)))
+                            (reduce + 0))}))
+       (map (juxt :date :amount))
+       (into {})))
 
 
 (defn salary-month-values [state]
@@ -98,20 +116,29 @@
 
 
 (defn monthly-wealth-index [state]
-  (let [dob (t/local-date (t/instant (:date-of-birth state)) "UTC")
+  (let [dob           (t/local-date (t/instant (:date-of-birth state)) "UTC")
         salary-months (salary-month-values state)
-        assets (->> (net-asset-month-values state)
-                    (map (juxt :date :value))
-                    (into {}))]
+        assets        (->> (net-asset-month-values state)
+                           (map (juxt :date :value))
+                           (into {}))
+        transactions  (->> state
+                           :assets
+                           vals
+                           (map :transactions)
+                           (reduce into)
+                           with-montly-transactions
+                           )]
     (->> salary-months
          (map (fn [{:keys [date value]}]
-                (let [net (get assets date 0)
-                      age (t/time-between dob date :years)]
-                  {:date date
-                   :net net
-                   :age age
-                   :salary value
-                   :wi (wi net value age)}))))))
+                (let [net   (get assets date 0)
+                      trans (get transactions date 0)
+                      age   (t/time-between dob date :years)]
+                  {:date               date
+                   :net                net
+                   :age                age
+                   :salary             value
+                   :wi                 (wi net value age)
+                   :transaction-amount trans}))))))
 
 
 (defn monthly-wi-goals [state]
