@@ -148,13 +148,14 @@
              (sort-by :timestamp)
              (map
               (fn [{:keys [timestamp value source]}]
-                [(js/Date. timestamp) value source]))
-             (into [["date" "value" {:type "string" :role "annotation"}]])
+                (let [d (js/Date. timestamp)]
+                  [d value (str (.toLocaleDateString d "en-ZA") " " source)])))
+             (into [["date" "value" {:type "string" :role "tooltip"}]])
              data-table)
         opt {:title "SALARY"
              :height 250
              :annotations {"Source" {:style "line"}}}]
-    (draw-line-chart "salary-chart" data opt)))
+    (draw-area-chart "salary-chart" data opt)))
 
 
 (rum/defc salaries < rum/static
@@ -446,10 +447,11 @@
                [(js/Date. timestamp) transaction-amount self-growth]))))
         (into [["date" "transactions" "growth"]])
         data-table)
-   {:title "Contributions"
+   {:title "CONTRIBUTIONS"
     :isStacked true
     :colors ["#ffde56" "#3372dd"]
-    :trendlines {0 {:color "#00ffd4"}}}))
+    :trendlines {0 {:color "#00ffd4"}}
+    :vAxis {:baselineColor "red"}}))
 
 
 (rum/defc goal-transactions < rum/static
@@ -495,6 +497,50 @@
       (s-percent salary-growth)]]]])
 
 
+(defn goal-distribution-pie [{:keys [transactions interest]}]
+  (draw-pie-chart
+   "goal-dist"
+   (->> [["type" "growth"]
+         ["transactions" transactions]
+         ["interest" interest]]
+        data-table)
+   {;:title "GROWTH DISTRIBUTION"
+    :colors ["#ffde56" "#3372dd"]}))
+
+
+(rum/defc goal-distribution < rum/static
+  {:did-mount (wrap-args goal-distribution-pie)}
+  [data]
+  [:div {:id "goal-dist"}])
+
+
+(defn goal-growth-overview [{:keys [net monthly-values goal-start]}]
+  (let [transactions (->> monthly-values
+                          (filter #(not= (:net %) goal-start))
+                          (map :transaction-amount)
+                          (reduce + 0))
+        transaction-percent (* 100 (/ transactions net))
+        interest-percent (- 100 transaction-percent)]
+    [:div
+     (goal-distribution {:transactions transactions
+                         :interest (- net transactions)})
+     [:div.level
+      [:div.level-item
+       [:div.has-text-centered
+        [:p.heading "GROWTH BY CONTRIBUTION"]
+        [:p.title
+         {:class (pos-neg-class transaction-percent)}
+         (s-percent transaction-percent)]]]
+      [:div.level-item
+       [:div.has-text-centered
+        [:p.heading "GROWTH BY INTEREST"]
+        [:p.title
+         {:class (pos-neg-class interest-percent)}
+         (s-percent interest-percent)]]]
+      ]]))
+
+
+
 (defmethod render-modal :yearly [state]
   (let [{:keys [year goals growth monthly-values goal-start] :as yearly}
         (get-in state [:yearly-goals (:year state)])]
@@ -506,6 +552,7 @@
       (goal-charts yearly)
       (goal-expectations yearly)
       (goal-transactions yearly)
+      (goal-growth-overview yearly)
       (goal-table monthly-values goal-start goals)
      [:button.modal-close.is-large {:on-click hide-modal}]]]))
 

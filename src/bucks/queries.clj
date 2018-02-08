@@ -60,7 +60,11 @@
             result
             (recur next-month next-value next-changes next-result)))))))
 
-(defn end-of-month [d] (-> d (t/plus (t/months 1)) (t/plus (t/days -1))))
+
+(defn wrap-end-of-month [m]
+  (update m :date
+          #(-> % (t/plus (t/months 1)) (t/plus (t/days -1)))))
+
 
 (defn with-last-monthy-values [values]
   (->> values
@@ -138,7 +142,8 @@
                    :age                age
                    :salary             value
                    :wi                 (wi net value age)
-                   :transaction-amount trans}))))))
+                   :transaction-amount trans})))
+         (map wrap-end-of-month))))
 
 
 (defn monthly-wi-goals [state]
