@@ -6,16 +6,16 @@
             [testdouble.cljs.csv :as csv]))
 
 
-(def actions
-  {"salary" [:d/year :d/month :d/day :d/name :d/amount]})
+(def pipe "|")
+(def comma ",")
+(def semicolon ";")
+(def seperators #{pipe comma semicolon})
 
 
-;;;; PARSE
-
-(defn- parse-symbol [s]
-  (if (symbol? s)
-    (str s)
-    s))
+(defn- parse-field
+  [s]
+  (let [value (reader/read-string s)]
+    (if (symbol? value) s value)))
 
 
 (defn- parse-row [row]
@@ -23,8 +23,7 @@
    (fn [field]
      (-> field
          str/trim
-         reader/read-string
-         parse-symbol))
+         parse-field))
    row))
 
 
@@ -36,7 +35,7 @@
 
 
 (defn- validate-row-data [key data]
-  (let [specs (get actions key)]
+  (let [specs (get d/data-types key)]
     (->> specs
          (map-indexed
           (fn [i spec]
@@ -47,10 +46,10 @@
 
 
 (defn- validate-row [[key & data]]
-  (if-not (contains? actions key)
-    {:valid? false :error (str key " is an invalid action") :data data}
+  (if-not (contains? d/data-types key)
+    {:valid? false :error (str key " is an invalid data type") :data data}
     (let [validation (validate-row-data key data)
-          specs (->> (get actions key))]
+          specs (->> (get d/data-types key))]
       (if (empty? (->> validation (map :valid?) (filter false?)))
         {:valid? true :specs specs :data data :key (keyword key)}
         (let [failed-specs (->> validation
@@ -69,41 +68,35 @@
   (-> (zipmap
        (map (comp keyword name) specs)
        (take (count specs) data))
-      (assoc :action-type key)))
+      (assoc :data-type key)))
 
 
-(defn parse [separator data]
+(defn parse
+  "Parses csv into a collection of validated data rows"
+  [separator data]
   (->> (csv/read-csv data :separator separator)
        (filter not-empty-row?)
        (map (comp validate-row parse-row))))
 
 
-(defn as-domain-values [rows]
+(defn as-domain-values
+  "Converts a collection of parsed and valid data rows into domain data."
+  [rows]
   (->> rows
        (filter :valid?)
        (map as-domain-value)))
 
 
-(defn un-parse [separator coll]
+(defn un-parse
+  "Converts a collection of domain data into a csv."
+  [separator coll]
   (->> coll
        (map
-        (fn [{:keys [action-type] :as m}]
-          (let [fields (->> (name action-type)
-                            (get actions)
+        (fn [{:keys [data-type] :as m}]
+          (let [fields (->> (name data-type)
+                            (get d/data-types)
                             (map (comp keyword name)))]
             (->> fields
-                 (map #(get m %))))))
+                 (map #(get m %))
+                 (cons (name data-type))))))
        (#(csv/write-csv % :separator separator))))
-
-;;;; tests
-
-
-(def separator-d "|")
-(def test-d
-  "salary|2014|2|31|My Company|29450\n
-   salary|2014|7|2|My Company|30950\n
-   salary|2015|1|1|Some Other Company|36000\n")
-
-(->> (parse separator-d test-d)
-     as-domain-values
-     (un-parse separator-d))

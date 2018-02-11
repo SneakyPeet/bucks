@@ -17,7 +17,8 @@
                  [jline "2.14.2"]
                  [rum "0.11.0"]
                  [clojure.java-time "0.3.1"]
-                 [testdouble/clojurescript.csv "0.3.0"]]
+                 [testdouble/clojurescript.csv "0.3.0"]
+                 [com.andrewmcveigh/cljs-time "0.5.2"]]
 
   :plugins [[lein-figwheel "0.5.14"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
