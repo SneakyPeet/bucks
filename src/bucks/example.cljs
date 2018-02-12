@@ -19,7 +19,7 @@
    ["year-goal" last-year "blue sky" 20]])
 
 (def salaries
-  [["salary" "Company 1" last-year 1 1 25000]
+  [["salary" "Company 1" last-year 1 2 25000]
    ["salary" "Company 1" last-year 6 1 27000]
    ["salary" "Company 1" this-year 1 1 36000]])
 

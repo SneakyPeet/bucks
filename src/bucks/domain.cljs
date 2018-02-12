@@ -65,8 +65,8 @@
     [:d/year :d/month :d/day]
     "Your date of birth to use in wealth index calculations."]
    ["salary"
-    [:d/name :d/year :d/month :d/day :d/amount]
-    "A Salary Change. Name is the Name Of Employer. Amount the Monthly Salary Before Tax."]
+    [:d/name :d/year :d/month :d/day :d/value]
+    "A Salary Change. Name is the Name Of Employer. Value the Monthly Salary Before Tax."]
    ["open-asset"
     [:d/name :d/year :d/month :d/day :d/asset-type :d/value :d/units :d/exclude-from-net]
     (str "A new Asset. Name is the name of the asset. Asset-type should be one of the following " asset-types
@@ -93,7 +93,7 @@
                      (into {})))
 
 
-;;;; Query
+;;;; QUERY HELPERS
 
 (defn type-of? [data-type m]
   (= data-type (:data-type m)))
@@ -110,10 +110,17 @@
 
 
 (defn timestamped [{:keys [year month day] :as m}]
-  (let [date (js/Date. year month day)]
+  (let [date (js/Date. year (dec month) day)] ;;js months start at 0
     (assoc m
            :date date
+           :cljs-date (time/date-time year month day)
            :timestamp (.getTime date))))
+
+
+(defn cljs-timestamped [{:keys [cljs-date] :as m}]
+  (assoc m
+         :date (time.coerce/to-date cljs-date)
+         :timestamp (time.coerce/to-long cljs-date)))
 
 
 (defn wrap-age [{:keys [timestamp] :as birthday}]
@@ -121,6 +128,35 @@
          :age (time/in-years (time/interval
                               (time.coerce/from-long timestamp)
                               (time/now)))))
+
+
+(defn monthly-values
+  "Calculates monthly values from first item to now.
+  Key is the map value containing the values"
+  [k coll]
+  (let [sorted-coll (sort-by :timestamp coll)
+        now         (time/now)
+        start       (first sorted-coll)]
+    (if (empty? sorted-coll)
+      []
+      (loop [month          (time/first-day-of-the-month (:cljs-date start))
+             value          (get start k)
+             remaining-coll (rest sorted-coll)
+             result         []]
+        (let [future? (time/after? month now)
+              next (first remaining-coll)
+              new? (and (not (empty? remaining-coll))
+                        (time/after? month (:cljs-date next)))
+              next-month (time/plus month (time/months 1))
+              next-value (if new? (get next k) value)
+              next-result (conj result {:cljs-date month :value next-value})
+              next-changes (if new? (drop 1 remaining-coll) remaining-coll)]
+          (if-not future?
+            (recur next-month next-value next-changes next-result)
+            (map cljs-timestamped result)))))))
+
+
+;;;;; QUERIES
 
 
 (defn birthday [coll]
@@ -149,7 +185,6 @@
        (filter (type-of-f? :year-goal))
        (sort-by :year)
        reverse))
-
 
 
 (defn assets [coll]
