@@ -200,6 +200,25 @@
        (map :amount)
        (reduce + 0)))
 
+
+(defn with-year [m] (assoc m :year (time/year (:cljs-date m))))
+
+
+(defn group-by-year [coll]
+  (->> coll
+       (map with-year)
+       (group-by :year)))
+
+
+(defn with-month [m] (assoc m :month (time/month (:cljs-date m))))
+
+
+(defn group-by-month [coll]
+  (->> coll
+       (map with-month)
+       (group-by :month)))
+
+
 ;;;;; QUERIES
 
 
@@ -340,6 +359,71 @@
     (into {})))
 
 
+(defn year-growth-months [start monthly-values transactions]
+  (let [transactions (->> transactions
+                         group-by-month
+                         (map
+                          (fn [[m t]]
+                            [m (->> t
+                                    (map :amount)
+                                    (reduce + 0))]))
+                         (into {}))
+        monthly-values (map with-month monthly-values)
+        monthly-values (zipmap (map :month monthly-values) monthly-values)]
+    (->> monthly-values
+         (map
+          (fn [[month {:keys [value] :as m}]]
+            (let [prev-value (get-in monthly-values [(dec month) :value] start)
+                  transaction (get transactions month 0)
+                  change (- value prev-value)
+                  self-growth-amount (- change transaction)]
+              (assoc m
+                     :growth-amount change
+                     :transacted-amount transaction
+                     :self-growth-amount self-growth-amount)))))))
+
+
+(defn years [assets monthly-salaries monthly-wi]
+  (let [with-year #(assoc % :year (time/year (:cljs-date %)))
+        assets (vals assets)
+        salaries (group-by-year monthly-salaries)
+        wi (group-by-year monthly-wi)
+        transactions (->> assets
+                          (map :transactions)
+                          (reduce into)
+                          (sort-by :timestamp)
+                          group-by-year)
+        years-data
+        (->> (monthly-asset-values assets)
+             group-by-year
+             (map
+              (fn [[y monthly-values]]
+                (let [transactions (get transactions y [])
+                      wi-growth (->> (get wi y [])
+                                     ((juxt last first))
+                                     (map :wi)
+                                     (apply -))
+                      salary-growth (->> (get salaries y [])
+                                         ((juxt last first))
+                                         (map :value)
+                                         (apply -))]
+                  [y {:year y
+                      :wi wi-growth
+                      :salary salary-growth
+                      :growth-year (growth-all-time monthly-values)
+                      :monthly-values monthly-values
+                      :transactions transactions
+                      :end (:value (last monthly-values))}])))
+             (into {}))]
+    (->> years-data
+         (map
+          (fn [[y {:keys [monthly-values transactions] :as d}]]
+            (let [start (get-in years-data [(dec y) :end] 0)]
+              [y (assoc d
+                        :start start
+                        :growth-months (year-growth-months start monthly-values transactions))]))))))
+
+
 (defn all-your-bucks [coll]
   (let [year-goals (year-goals coll)
         wi-goal (wi-goals coll)
@@ -355,5 +439,6 @@
                            (assoc :growth-year (growth-year monthly-asset-values)
                                   :growth-month (growth-month monthly-asset-values)))
         asset-groups (asset-groups assets)
+        years (years assets monthly-salaries monthly-wi)
         ]
-    asset-groups))
+    years))
