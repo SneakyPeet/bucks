@@ -284,7 +284,6 @@
 
 (defn monthly-asset-values [assets]
   (->> assets
-       vals
        (map :monthly-values)
        (reduce into)
        (group-by :timestamp)
@@ -310,7 +309,35 @@
                      :age age
                      :asset-value asset-value
                      :wi (wi asset-value value age)
-                     ))))))) 
+                     )))))))
+
+
+(defn asset-groups [assets]
+  (->> assets
+       vals
+       (group-by :asset-type)
+       (map
+        (fn [[t assets]]
+          (let [monthly-values (monthly-asset-values assets)
+                transactions (->> assets
+                                  (map :transactions)
+                                  (reduce into)
+                                  (sort-by :timestamp))
+                {:keys [value]} (last monthly-values)
+                contribution (contribution-amount transactions)
+                growth (growth-amount monthly-values)
+                self-growth (- growth contribution)]
+            [t {:asset-type t
+                :monthly-values monthly-values
+                :growth-all-time (growth-all-time monthly-values)
+                :growth-year (growth-year monthly-values)
+                :growth-month (growth-month monthly-values)
+                :contribution-growth-amount contribution
+                :growth-amount growth
+                :self-growth-amount self-growth
+                :value value
+                :transactions transactions}])))
+    (into {})))
 
 
 (defn all-your-bucks [coll]
@@ -322,6 +349,11 @@
         assets (assets coll)
         open-assets (->> assets
                          (filter (fn [[_ v]] (false? (:closed? v)))))
-        monthly-asset-values (monthly-asset-values open-assets)
-        monthly-wi (monthly-wi birthday monthly-salaries monthly-asset-values)]
-    monthly-wi))
+        monthly-asset-values (monthly-asset-values (vals open-assets))
+        monthly-wi (monthly-wi birthday monthly-salaries monthly-asset-values)
+        current-values (-> (last monthly-wi)
+                           (assoc :growth-year (growth-year monthly-asset-values)
+                                  :growth-month (growth-month monthly-asset-values)))
+        asset-groups (asset-groups assets)
+        ]
+    asset-groups))
