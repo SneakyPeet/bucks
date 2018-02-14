@@ -280,3 +280,48 @@
        (map (fn [[k a]]
               [k (asset a)]))
        (into {})))
+
+
+(defn monthly-asset-values [assets]
+  (->> assets
+       vals
+       (map :monthly-values)
+       (reduce into)
+       (group-by :timestamp)
+       (map (fn [[t v]]
+              (->> v
+                   (map :value)
+                   (reduce + 0)
+                   (assoc {:cljs-date (time.coerce/from-long t)}
+                          :value))))
+       (map cljs-timestamped)
+       (sort-by :timestamp)
+       ))
+
+
+(defn monthly-wi [birthday monthly-salaries monthly-asset-values]
+  (let [assets (zipmap (map :timestamp monthly-asset-values) monthly-asset-values)]
+    (->> monthly-salaries
+         (map
+          (fn [{:keys [timestamp cljs-date value] :as m}]
+            (let [asset-value (get-in assets [timestamp :value])
+                  age (time/in-years (time/interval (:cljs-date birthday) cljs-date))]
+              (assoc m
+                     :age age
+                     :asset-value asset-value
+                     :wi (wi asset-value value age)
+                     ))))))) 
+
+
+(defn all-your-bucks [coll]
+  (let [year-goals (year-goals coll)
+        wi-goal (wi-goals coll)
+        birthday (birthday coll)
+        salaries (salaries coll)
+        monthly-salaries (monthly-values :value salaries)
+        assets (assets coll)
+        open-assets (->> assets
+                         (filter (fn [[_ v]] (false? (:closed? v)))))
+        monthly-asset-values (monthly-asset-values open-assets)
+        monthly-wi (monthly-wi birthday monthly-salaries monthly-asset-values)]
+    monthly-wi))
