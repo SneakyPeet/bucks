@@ -6,6 +6,8 @@
 (->> example/test-piped-csv
      (parse/parse parse/pipe)
      parse/as-domain-values
-     domain/salaries
-     (domain/monthly-values :value)
+     domain/assets
+     ;domain/salaries
+     ;(domain/monthly-values :value)
      )
+  

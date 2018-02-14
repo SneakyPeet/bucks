@@ -156,6 +156,50 @@
             (map cljs-timestamped result)))))))
 
 
+(defn wi [value salary age] (/ (/ value (* 12 salary)) (/ age 10)))
+
+
+(defn growth-percentage
+  ([] 0)
+  ([x] 0)
+  ([start end]
+  (if (and (number? start) (number? end) (not= 0 end) (not= 0 start))
+    (* 100 (- (/ end start) 1))
+    0)))
+
+
+(defn growth-all-time [month-values]
+  (->> ((juxt first last) month-values)
+       (map :value)
+       (apply growth-percentage)))
+
+
+(defn growth-year [month-values]
+  (let [year (-> (time/now)
+                 time/year
+                 (time/date-time)
+                 (time/minus (time/millis 1)))]
+    (->> month-values
+         (filter #(time/after? (:cljs-date %) year))
+         growth-all-time)))
+
+
+(defn growth-month [month-values]
+  (->> month-values
+       (take-last 2)
+       growth-all-time))
+
+
+(defn growth-amount [month-values]
+  (- (:value (last month-values))
+     (:value (first month-values))))
+
+
+(defn contribution-amount [transactions]
+  (->> transactions
+       (map :amount)
+       (reduce + 0)))
+
 ;;;;; QUERIES
 
 
@@ -187,7 +231,52 @@
        reverse))
 
 
+(defn asset [asset-data]
+  (let [{:keys [open-asset transaction value close-asset]}
+        (group-by :data-type asset-data)
+        closed? (not (empty? close-asset))
+        details (first open-asset)
+        open-transaction (assoc details :amount (:value details))
+        close (first close-asset)
+        values (->> [open-asset transaction value
+                      (when closed?
+                        [(assoc close :value 0)])]
+                    (keep identity)
+                    (reduce into)
+                    (map timestamped)
+                    (sort-by :timestamp))
+        transactions (->> [transaction
+                           [open-transaction]
+                           (when closed? [(assoc close :amount (- (:value close)))])]
+                          (keep identity)
+                          (reduce into)
+                          (map timestamped)
+                          (sort-by :timestamp))
+        monthly-values (monthly-values :value values)
+        contribution (contribution-amount transaction)
+        growth (growth-amount monthly-values)
+        self-growth (- growth contribution)]
+    (-> details
+        timestamped
+        (update :exclude-from-net #(= yes %))
+        (assoc :closed? closed?
+               :values values
+               :transactions transactions
+               :monthly-values monthly-values
+               :growth-all-time (growth-all-time monthly-values)
+               :growth-year (growth-year monthly-values)
+               :growth-month (growth-month monthly-values)
+               :contribution-growth-amount contribution
+               :self-growth-amount self-growth
+               :growth-amount growth
+               :start-value (:value (first monthly-values))
+               :value (:value (last monthly-values))))))
+
+
 (defn assets [coll]
   (->> coll
        (filter (types-of-f? :open-asset :transaction :value :close-asset))
-       (group-by :name)))
+       (group-by :name)
+       (map (fn [[k a]]
+              [k (asset a)]))
+       (into {})))
