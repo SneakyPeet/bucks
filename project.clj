@@ -11,12 +11,7 @@
   :dependencies [[org.clojure/clojure "1.9.0-beta4"]
                  [org.clojure/clojurescript "1.9.946"]
                  [org.clojure/core.async  "0.3.443"]
-                 [slingshot "0.12.2"]
-                 [expound "0.4.0"]
-                 [commandline-clj "0.3.0"]
-                 [jline "2.14.2"]
                  [rum "0.11.0"]
-                 [clojure.java-time "0.3.1"]
                  [testdouble/clojurescript.csv "0.3.0"]
                  [com.andrewmcveigh/cljs-time "0.5.2"]]
 
