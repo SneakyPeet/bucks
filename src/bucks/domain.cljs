@@ -507,6 +507,13 @@
         asset-groups (asset-groups assets)
         years (years assets monthly-salaries monthly-wi year-goals)
         wi-goals (wi-goals coll birthday monthly-wi)
-        money-lifetime (money-lifetimes current-values coll)
+        money-lifetimes (money-lifetimes current-values coll)
         ]
-    money-lifetime))
+    {:birthday birthday
+     :salaries salaries
+     :assets assets
+     :monthly-wi monthly-wi
+     :asset-groups asset-groups
+     :years years
+     :wi-goals wi-goals
+     :money-lifetimes money-lifetimes}))

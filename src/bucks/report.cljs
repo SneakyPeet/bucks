@@ -72,6 +72,7 @@
   (.load js/google.charts "current" (clj->js {:packages ["corechart" "annotationchart" "gauge"]}))
   (.setOnLoadCallback js/google.charts #(page :home)))
 
+
 (defn data-table [coll]
   (.arrayToDataTable js/google.visualization (clj->js coll)))
 
@@ -578,6 +579,7 @@
   [:div
    [:h1.title.has-text-primary.has-text-centered "Loading all the Things"]
    [:h2.subtitle.has-text-primary.has-text-centered "(╯°□°）╯︵ ┻━┻"]])
+
 
 
 (defn col [size & children]
