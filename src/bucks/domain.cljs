@@ -516,4 +516,5 @@
      :asset-groups asset-groups
      :years years
      :wi-goals wi-goals
-     :money-lifetimes money-lifetimes}))
+     :money-lifetimes money-lifetimes
+     :current-values current-values}))

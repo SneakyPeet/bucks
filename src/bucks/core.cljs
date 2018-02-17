@@ -102,11 +102,70 @@
 
 ;;;; COMPONENTS
 
+(def number-formatter (js/Intl.NumberFormat.))
+
+
+(defn format-num [v] (.format number-formatter v))
+
+
+(defn format-% [v] (str (format-num v) "%"))
+
+
+(defn color-num [n] (cond (= 0 n) "has-text-light"
+                          (> n 0) "has-text-primary"
+                          :else "has-text-danger"))
+
+
+(defn info-box [t info & [class]]
+  [:div.has-text-centered.info-box
+   [:p.heading t]
+   [:p.title {:class (or class "has-text-light")} info]])
+
+
+(defn col [size & children]
+  [:div.column {:class (str "is-" size)}
+   [:div.box.is-shadowless.has-text-grey-lighter
+    children]])
+
+
+(rum/defc chart < rum/static
+  {:did-mount (fn [s]
+                (let [[id f] (:rum/args s)]
+                  (f id)
+                  s))}
+  [chart-id chart-renderer]
+  [:div {:id chart-id}])
+
 
 ;;;; DATA
 
-(defmethod render-page :main [state]
-  "Hi")
+
+(defn wealth-guage [wi]
+  (chart
+   "wi-guage"
+   (fn [id]
+     (draw-guages
+      id
+      (data-table [["Level" "Value"]
+                   ["Wealth Index" wi]])
+      {:height 200 :majorTicks (range 0 6 1) :max 5 :min 0
+       :greenColor "#00d1b2" :greenFrom 3 :greenTo 5
+       :yellowColor "#ffde56" :yellowFrom 1.5 :yellowTo 3
+       :redColor "#ff385f" :redFrom 0 :redTo 1.5}))))
+
+(defn color-wi-num [n] (cond (> 1.5 n) "has-text-danger"
+                             (> 3 n) "has-text-warning"
+                             :else "has-text-success"))
+
+
+(defmethod render-page :main [{:keys [data]}]
+  (let [{:keys [wi asset-value growth-month growth-year]} (:current-values data)]
+    [:div.columns.is-multiline.is-centered
+     (col 3 (info-box "WEALTH INDEX" (format-num wi) (color-wi-num wi)))
+     (col 3 (info-box "NET" (format-num asset-value)))
+     (col 3 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
+     (col 3 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
+     (col 2 (wealth-guage wi))]))
 
 ;;;;APP
 
