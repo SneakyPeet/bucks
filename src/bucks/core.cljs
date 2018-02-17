@@ -153,9 +153,40 @@
        :yellowColor "#ffde56" :yellowFrom 1.5 :yellowTo 3
        :redColor "#ff385f" :redFrom 0 :redTo 1.5}))))
 
+
 (defn color-wi-num [n] (cond (> 1.5 n) "has-text-danger"
                              (> 3 n) "has-text-warning"
                              :else "has-text-success"))
+
+
+(defn growth-chart [monthly-wi]
+  (chart
+   "growth-chart"
+   (fn [id]
+     (draw-area-chart
+      id
+      (->> monthly-wi
+           (map (juxt :date :value))
+           (into [["month" "value"]])
+           data-table)
+      {:title "GROWTH"}))))
+
+
+(defn salaries-tooltip [{:keys [date value name]}]
+  (str (format-num value) " " name " "  (.toLocaleDateString date "en-ZA")))
+
+
+(defn salaries-chart [salaries]
+  (chart
+   "salaries-chart"
+   (fn [id]
+     (draw-area-chart
+      id
+      (->> salaries
+           (map (juxt :date :value salaries-tooltip))
+           (into [["month" "value" {:type "string" :role "tooltip"}]])
+           data-table)
+      {:title "SALARIES"}))))
 
 
 (defmethod render-page :main [{:keys [data]}]
@@ -165,7 +196,12 @@
      (col 3 (info-box "NET" (format-num asset-value)))
      (col 3 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
      (col 3 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
-     (col 2 (wealth-guage wi))]))
+     (col 2 (wealth-guage wi))
+     ;;todo asset groups
+     (col 7 (growth-chart (:monthly-wi data)))
+     ;;wi
+     (col 7 (salaries-chart (:salaries data)))
+     ]))
 
 ;;;;APP
 
