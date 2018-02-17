@@ -19,12 +19,12 @@
    ["year-goal" last-year "blue sky" 20]])
 
 (def salaries
-  [["salary" "Company 1" last-year 1 2 25000]
+  [["salary" "Company 1" (dec last-year) 1 2 25000]
    ["salary" "Company 1" last-year 6 1 27000]
    ["salary" "Company 1" this-year 1 1 36000]])
 
 (def asset1
-  [["open-asset" "Asset 1" last-year 1 1 "RA" 20000 10 "n"]
+  [["open-asset" "Asset 1" (dec last-year) 12 30 "RA" 20000 10 "n"]
    ["transaction" "Asset 1" last-year 3 1 1000 19800 1]
    ["transaction" "Asset 1" last-year 6 1 2000 23700 2]
    ["transaction" "Asset 1" last-year 8 1 -1000 23300 -1]
