@@ -434,7 +434,7 @@
                   total (- end start)
                   no-growth? (= 0 total)
                   transaction-growth-percent (if no-growth? 0 (* 100 (/ transaction-total total)))
-                  self-growth-percent (if no-growth? 0 (- 100 transaction-growth))
+                  self-growth-percent (if no-growth? 0 (- 100 transaction-growth-percent))
                   goals (->> (get year-goals y)
                              (map
                               (fn [{:keys [percentage] :as m}]
