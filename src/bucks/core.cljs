@@ -189,6 +189,16 @@
       {:title "SALARIES"}))))
 
 
+(defn years [years]
+  [:div.columns.is-multiline.is-centered
+   (map-indexed
+    (fn [i year]
+      [:div.column.is-1.has-text-centered.asset-button
+       {:key i :on-click #(show-modal :year year)}
+       [:p.title.is-5 year]])
+    years)])
+
+
 (defmethod render-page :main [{:keys [data]}]
   (let [{:keys [wi asset-value growth-month growth-year]} (:current-values data)]
     [:div.columns.is-multiline.is-centered
@@ -201,6 +211,7 @@
      (col 7 (growth-chart (:monthly-wi data)))
      ;;wi
      (col 7 (salaries-chart (:salaries data)))
+     (col 12 (years (-> data :years keys)))
      ]))
 
 ;;;;APP
