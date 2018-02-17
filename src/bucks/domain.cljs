@@ -57,6 +57,12 @@
 
 (s/def :d/exclude-from-net #(contains? #{yes no} %))
 
+(s/def :d/inflation pos?)
+
+(s/def :d/percent-of-salary pos?)
+
+(s/def :d/asset-growth number?)
+
 
 ;;;; DATA TYPES
 
@@ -85,7 +91,10 @@
     "A goal wealth index to reach at an age"]
    ["year-goal"
     [:d/year :d/name :d/percentage]
-    "A growth percentage goal for a given year"]])
+    "A growth percentage goal for a given year"]
+   ["money-lifetime"
+    [:d/inflation :d/percent-of-salary :d/asset-growth]
+    "Calculates the lifetime of your money given annual inflation and asset growth compounded monthly with monthly withdrawals of a percentage of your salary."]])
 
 
 (def data-types (->> data-types-config
@@ -335,6 +344,7 @@
                   age (time/in-years (time/interval (:cljs-date birthday) cljs-date))]
               (assoc m
                      :age age
+                     :salary value
                      :asset-value asset-value
                      :wi (wi asset-value value age)
                      )))))))
@@ -453,6 +463,34 @@
                         :goals goals)]))))))
 
 
+(defn monthly-interest [annual-percentage]
+  (-> annual-percentage
+      (/ 12 100)
+      (+ 1)))
+
+
+(defn money-lifetime [{:keys [salary asset-value]} {:keys [inflation percent-of-salary asset-growth] :as life}]
+  (let [deduction            (* (/ salary 100) percent-of-salary)
+        monthly-inflation    (monthly-interest inflation)
+        monthly-asset-growth (monthly-interest asset-growth)
+        fifty-year-months    (* 12 50)]
+    (loop [deduction deduction
+           value     asset-value
+           months    0]
+      (if (or (> 0 (- value deduction)) (> months fifty-year-months))
+        (assoc life :months (mod months 12) :years (int (/ months 12)) :value value :monthly-salary deduction)
+        (let [d (* deduction monthly-inflation)
+              v (* (- value deduction) monthly-asset-growth)
+              m (inc months)]
+          (recur d v m))))))
+
+
+(defn money-lifetimes [current-values coll]
+  (->> coll
+       (filter (type-of-f? :money-lifetime))
+       (map #(money-lifetime current-values %))))
+
+
 (defn all-your-bucks [coll]
   (let [year-goals (year-goals coll)
         birthday (birthday coll)
@@ -469,5 +507,6 @@
         asset-groups (asset-groups assets)
         years (years assets monthly-salaries monthly-wi year-goals)
         wi-goals (wi-goals coll birthday monthly-wi)
+        money-lifetime (money-lifetimes current-values coll)
         ]
-    wi-goals))
+    money-lifetime))

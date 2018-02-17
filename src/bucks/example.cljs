@@ -13,6 +13,9 @@
 (def wi [["wi-goal" 2 40]
          ["wi-goal" 5 65]])
 
+(def money-lifetime [["money-lifetime" 5 100 10]
+                     ["money-lifetime" 7.5 75 5]])
+
 (def year-goals
   [["year-goal" this-year "blue sky" 26]
    ["year-goal" this-year "base" 15]
@@ -54,6 +57,7 @@
   (->> [dob
         wi
         year-goals
+        money-lifetime
         salaries
         asset1
         asset2
