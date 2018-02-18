@@ -192,11 +192,55 @@
 (defn years [years]
   [:div.columns.is-multiline.is-centered
    (map-indexed
-    (fn [i year]
+    (fn [i [year {:keys [growth-year] :as d}]]
       [:div.column.is-1.has-text-centered.asset-button
        {:key i :on-click #(show-modal :year year)}
-       [:p.title.is-5 year]])
+       [:p.title.is-5.has-text-light year]
+       [:p.subtitle.is-6 {:class (color-num growth-year)} (format-% growth-year)]])
     years)])
+
+
+(defn asset-groups [asset-groups]
+  [:div.columns.is-multiline.is-centered
+   (map-indexed
+    (fn [i [name {:keys [growth-month] :as d}]]
+      [:div.column.is-2.has-text-centered.asset-button
+       {:key i :on-click #(show-modal :asset-group name)}
+       [:p.heading.has-text-light name]
+       [:p.heading {:class (color-num growth-month)} (format-% growth-month)]
+       ])
+    asset-groups)])
+
+
+(defn assets [assets]
+  [:div.columns.is-multiline.is-centered
+   (map-indexed
+    (fn [i {:keys [name asset-type growth-month value] :as d}]
+      [:div.column.is-2.has-text-centered.asset-button
+       {:key i :on-click #(show-modal :asset-group name)}
+       [:p.heading.has-text-light name]
+       [:p.heading asset-type]
+       (when-not (= 0 value) [:p.heading (format-num value)])
+       (when-not (= 0 value) [:p.heading {:class (color-num growth-month)} (format-% growth-month)])
+       ])
+    assets)])
+
+
+(defn money-lifetimes [lifetimes]
+  [:div.columns.is-multiline.is-centered
+   (map-indexed
+    (fn [i {:keys [years months percent-of-salary inflation asset-growth] :as d}]
+      (col 2
+           [:div.has-text-centered
+            (if (>= years 50)
+              [:p.title.is-5.has-text-light.is-marginless "> 50 years"]
+              [:p.title.is-5.is-marginless {:style {:color "grey"}}
+               [:span.has-text-light years] "y " [:span.has-text-light months] "m"])
+            [:p.heading.is-marginless percent-of-salary "% salary"]
+            [:p.heading.is-marginless asset-growth "% growth"]
+            [:p.heading.is-marginless inflation "% inflation"]]
+       ))
+    lifetimes)])
 
 
 (defmethod render-page :main [{:keys [data]}]
@@ -206,12 +250,16 @@
      (col 3 (info-box "NET" (format-num asset-value)))
      (col 3 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
      (col 3 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
-     (col 2 (wealth-guage wi))
+     [:div.column.is-2.has-text-centered (wealth-guage wi)]
      ;;todo asset groups
      (col 7 (growth-chart (:monthly-wi data)))
      ;;wi
      (col 7 (salaries-chart (:salaries data)))
-     (col 12 (years (-> data :years keys)))
+     [:div.column.is-12 (money-lifetimes (:money-lifetimes data))]
+     (col 12 (years (:years data)))
+     (col 12 (asset-groups (:asset-groups data)))
+     (col 12 (assets (->> data :assets vals (filter (comp not :closed?)))))
+     (col 12 (assets (->> data :assets vals (filter :closed?))))
      ]))
 
 ;;;;APP

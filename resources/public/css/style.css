@@ -39,3 +39,9 @@ html {
   color:  #cecece;
 }
 
+#wi-guage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
