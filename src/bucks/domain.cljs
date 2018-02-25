@@ -90,7 +90,7 @@
     [:d/wealth-index :d/age]
     "A goal wealth index to reach at an age"]
    ["year-goal"
-    [:d/year :d/name :d/percentage]
+    [:d/year :d/percentage]
     "A growth percentage goal for a given year"]
    ["money-lifetime"
     [:d/inflation :d/percent-of-salary :d/asset-growth]

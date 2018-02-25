@@ -17,9 +17,9 @@
                      ["money-lifetime" 7.5 75 5]])
 
 (def year-goals
-  [["year-goal" this-year "blue sky" 26]
-   ["year-goal" this-year "base" 15]
-   ["year-goal" last-year "blue sky" 20]])
+  [["year-goal" this-year 26]
+   ["year-goal" this-year 15]
+   ["year-goal" last-year 20]])
 
 (def salaries
   [["salary" "Company 1" (dec last-year) 1 2 25000]
