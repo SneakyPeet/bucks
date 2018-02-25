@@ -270,6 +270,8 @@
 
 (defn year-goals [coll]
   (->> (filter (type-of-f? :year-goal) coll)
+       (map (fn [{:keys [percentage] :as m}]
+              (assoc m :name (str percentage "%"))))
        (group-by :year)))
 
 

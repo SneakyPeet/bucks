@@ -281,7 +281,7 @@
         (map-indexed
          (fn [i {:keys [name start end]}]
            (let [goal-growth (- end start)]
-             (level-item (str "Required " name) format-num goal-growth (color-num (- growth goal-growth)) i)))
+             (level-item (str "Required for " name) format-num goal-growth (color-num (- growth goal-growth)) i)))
          goals)]
        (year-transactions-chart growth-months)
        (year-growth-pie self-growth-percent transaction-growth-percent)
