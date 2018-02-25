@@ -2,7 +2,8 @@
   (:require [bucks.domain :as domain]
             [bucks.example :as example]
             [bucks.parse :as parse]
-            [rum.core :as rum]))
+            [rum.core :as rum]
+            [cljs-time.format :as time.format]))
 
 (enable-console-print!)
 
@@ -211,12 +212,13 @@
       id
       (->> growth-months
            (map (juxt :date :transacted-amount :self-growth-amount))
-           (into [["month" "transactions" "growth"]])
+           (into [["month" "transactions" "interest"]])
            data-table)
       {:title "CONTRIBUTIONS"
        :isStacked true
        :colors alternate-chart-colors
-       :trendlines {0 {:color "#00ffd4"}}
+       :trendlines {0 {:color (first alternate-chart-colors)}
+                    1 {:color (second alternate-chart-colors)}}
        :vAxis {:baselineColor "red"}}))))
 
 
@@ -228,9 +230,36 @@
       id
       (data-table
        [["type" "%"]
-        ["transactions" (max 0 transaction-growth-percent)]
-        ["growth" (max 0 self-growth-precent)]])
+        ["growth by contributions" (max 0 transaction-growth-percent)]
+        ["growth by interest" (max 0 self-growth-precent)]])
       {:colors alternate-chart-colors}))))
+
+
+(defn year-monthly-targets [goals growth-months]
+  [:div
+   [:table.table.is-narrow.is-fullwidth
+    [:thead
+     [:tr [:th.has-text-centered {:col-span (+ 2 (count goals))} "Monthly Targets"]]
+     [:tr
+      [:th "Month"] [:th "Actual"]
+      (map-indexed
+       (fn [i {:keys [name]}]
+         [:th {:key i} name])
+       goals)]]
+    [:tbody
+     (map-indexed
+      (fn [i {:keys [cljs-date growth-amount]}]
+        [:tr {:key i}
+         [:td (time.format/unparse (time.format/formatter "MMM") cljs-date)]
+         [:td (format-num growth-amount)]
+         (map-indexed
+          (fn [i {:keys [expected-monthly]}]
+            (let [diff (js/Math.floor (- growth-amount expected-monthly))]
+              [:td {:key i :class (color-num diff)} diff]))
+          goals)])
+      growth-months)]]
+   [:small.has-text-grey
+    "* goal values indicate the difference between required monthly and actual monthly growth"]])
 
 
 (defmethod render-modal :year [{:keys [modal data]}]
@@ -239,7 +268,7 @@
                 transactions end transaction-growth-percent transaction-total salary] :as data}
         (get-in data [:years year])]
     (let [growth-months (map domain/end-of-month growth-months)
-          actual-end end]
+          growth (- end start)]
       [:div
        [:h1.title.has-text-light.has-text-centered year]
        [:div.level
@@ -248,14 +277,15 @@
         (color-level-item "SALARY" format-% salary)]
        (year-growth-chart year start goals growth-months)
        [:div.level.space
-        (level-item "ACTUAL" format-num end)
+        (level-item "ACTUAL" format-num growth)
         (map-indexed
-         (fn [i {:keys [name end]}]
-           (level-item name format-num end (color-num (- actual-end end)) i))
+         (fn [i {:keys [name start end]}]
+           (let [goal-growth (- end start)]
+             (level-item (str "Required " name) format-num goal-growth (color-num (- growth goal-growth)) i)))
          goals)]
        (year-transactions-chart growth-months)
        (year-growth-pie self-growth-percent transaction-growth-percent)
-       ])))
+       (year-monthly-targets goals growth-months)])))
 
 
 ;;;; ASSET MODAL
