@@ -180,7 +180,6 @@
                       (assoc goal-end-row n end)])))
                 (reduce into))
            growth (->> growth-months
-                       (map domain/end-of-month)
                        (map get-values)
                        (#(conj % growth-start-row)))]
        (draw-area-chart
@@ -192,19 +191,38 @@
         {:title "GOALS"})))))
 
 
+(defn year-transactions-chart [growth-months]
+  (chart
+   "year-transaction-chart"
+   (fn [id]
+     (draw-column-chart
+      id
+      (->> growth-months
+           (map (juxt :date :transacted-amount :self-growth-amount))
+           (into [["month" "transactions" "growth"]])
+           data-table)
+      {:title "CONTRIBUTIONS"
+       :isStacked true
+       :colors ["#ffde56" "#3372dd"]
+       :trendlines {0 {:color "#00ffd4"}}
+       :vAxis {:baselineColor "red"}}))))
+
+
 (defmethod render-modal :year [{:keys [modal data]}]
   (let [year (:data modal)
         {:keys [monthly-values goals start wi growth-months growth-year self-growth-percent
                 transactions end transaction-growth-percent transaction-total salary] :as data}
         (get-in data [:years year])]
-    ;(prn growth-months)
-    [:div
-     [:h1.title.has-text-light.has-text-centered year]
-     [:div.level
-      (color-level "YTD" format-% growth-year)
-      (color-level "WI" format-num wi)
-      (color-level "SALARY" format-% salary)]
-     (year-growth-chart year start goals growth-months)]))
+    (let [growth-months (map domain/end-of-month growth-months)]
+      (prn growth-months)
+      [:div
+       [:h1.title.has-text-light.has-text-centered year]
+       [:div.level
+        (color-level "YTD" format-% growth-year)
+        (color-level "WI" format-num wi)
+        (color-level "SALARY" format-% salary)]
+       (year-growth-chart year start goals growth-months)
+       (year-transactions-chart growth-months)])))
 
 
 ;;;; ASSET MODAL
@@ -345,7 +363,7 @@
     [:div
      (when-not (= :hidden (get-in current-state [:modal :key]))
        [:div.modal.is-active
-        [:div.modal-background]
+        [:div.modal-background {:on-click hide-modal}]
         [:div.modal-content
          [:div.box
           (render-modal current-state)]]
