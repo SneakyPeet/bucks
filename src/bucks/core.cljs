@@ -236,30 +236,31 @@
 
 
 (defn year-monthly-targets [goals growth-months]
-  [:div
-   [:table.table.is-narrow.is-fullwidth
-    [:thead
-     [:tr [:th.has-text-centered {:col-span (+ 2 (count goals))} "Monthly Targets"]]
-     [:tr
-      [:th "Month"] [:th "Actual"]
-      (map-indexed
-       (fn [i {:keys [name]}]
-         [:th {:key i} name])
-       goals)]]
-    [:tbody
-     (map-indexed
-      (fn [i {:keys [cljs-date growth-amount]}]
-        [:tr {:key i}
-         [:td (time.format/unparse (time.format/formatter "MMM") cljs-date)]
-         [:td (format-num growth-amount)]
-         (map-indexed
-          (fn [i {:keys [expected-monthly]}]
-            (let [diff (js/Math.floor (- growth-amount expected-monthly))]
-              [:td {:key i :class (color-num diff)} diff]))
-          goals)])
-      growth-months)]]
-   [:small.has-text-grey
-    "* goal values indicate the difference between required monthly and actual monthly growth"]])
+  (when-not (empty? goals)
+    [:div
+     [:table.table.is-narrow.is-fullwidth
+      [:thead
+       [:tr [:th.has-text-centered {:col-span (+ 2 (count goals))} "Monthly Targets"]]
+       [:tr
+        [:th "Month"] [:th "Growth"]
+        (map-indexed
+         (fn [i {:keys [name]}]
+           [:th {:key i} name])
+         goals)]]
+      [:tbody
+       (map-indexed
+        (fn [i {:keys [cljs-date growth-amount]}]
+          [:tr {:key i}
+           [:td (time.format/unparse (time.format/formatter "MMM") cljs-date)]
+           [:td (format-num growth-amount)]
+           (map-indexed
+            (fn [i {:keys [expected-monthly]}]
+              (let [diff (js/Math.floor (- growth-amount expected-monthly))]
+                [:td {:key i :class (color-num diff)} diff]))
+            goals)])
+        growth-months)]]
+     [:small.has-text-grey
+      "* goal values indicate the difference between required monthly and actual monthly growth"]]))
 
 
 (defmethod render-modal :year [{:keys [modal data]}]
