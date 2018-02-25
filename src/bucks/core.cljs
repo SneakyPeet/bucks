@@ -137,7 +137,82 @@
   [:div {:id chart-id}])
 
 
-;;;; DATA
+(defn color-level [heading format value]
+  [:div.level-item
+   [:div.has-text-centered
+    [:p.heading heading]
+    [:p.title
+     {:class (color-num value)}
+     (format value)]]])
+
+
+(def nothing (constantly nil))
+
+
+;;;; YEAR MODAL
+
+(defn year-growth-chart [year start goals growth-months]
+  (chart
+   "year-growth-chart"
+   (fn [id]
+     (let [goal-headings (->> goals (map :name))
+           headings (into ["month" "value"] goal-headings)
+           get-values (->> (range (count goals))
+                           (map (constantly nothing))
+                           (into [:date :value])
+                           (apply juxt)
+                           )
+           start-date (js/Date. year 0 1)
+           end-date (js/Date. year 11 31)
+           base-goal-row (->> (+ 2 (count goals))
+                              range
+                              (map nothing)
+                              vec)
+           goal-start-row (assoc base-goal-row 0 start-date)
+           goal-end-row (assoc base-goal-row 0 end-date)
+           growth-start-row (assoc goal-start-row 1 start)
+           goals
+           (->> goals
+                (map-indexed
+                 (fn [i {:keys [start end]}]
+                   (let [n (+ 2 i)]
+                     [(assoc goal-start-row n start)
+                      (assoc goal-end-row n end)])))
+                (reduce into))
+           growth (->> growth-months
+                       (map domain/end-of-month)
+                       (map get-values)
+                       (#(conj % growth-start-row)))]
+       (draw-area-chart
+        id
+        (->> growth
+             (into goals)
+             (into [headings])
+             data-table)
+        {:title "GOALS"})))))
+
+
+(defmethod render-modal :year [{:keys [modal data]}]
+  (let [year (:data modal)
+        {:keys [monthly-values goals start wi growth-months growth-year self-growth-percent
+                transactions end transaction-growth-percent transaction-total salary] :as data}
+        (get-in data [:years year])]
+    ;(prn growth-months)
+    [:div
+     [:h1.title.has-text-light.has-text-centered year]
+     [:div.level
+      (color-level "YTD" format-% growth-year)
+      (color-level "WI" format-num wi)
+      (color-level "SALARY" format-% salary)]
+     (year-growth-chart year start goals growth-months)]))
+
+
+;;;; ASSET MODAL
+(defmethod render-modal :asset-group [state]
+  [:div "foo"])
+
+
+;;;; MAIN PAGE
 
 
 (defn wealth-guage [wi]
@@ -243,7 +318,7 @@
     lifetimes)])
 
 
-(defmethod render-page :main [{:keys [data]}]
+(defmethod render-page :main [{:keys [data modal]}]
   (let [{:keys [wi asset-value growth-month growth-year]} (:current-values data)]
     [:div.columns.is-multiline.is-centered
      (col 3 (info-box "WEALTH INDEX" (format-num wi) (color-wi-num wi)))
@@ -262,12 +337,19 @@
      (col 12 (assets (->> data :assets vals (filter :closed?))))
      ]))
 
+
 ;;;;APP
 
 (rum/defc app < rum/reactive [state]
   (let [current-state (rum/react state)]
     [:div
-     (when-not (= :hidden (get-in current-state [:modal :key])) (render-modal state))
+     (when-not (= :hidden (get-in current-state [:modal :key]))
+       [:div.modal.is-active
+        [:div.modal-background]
+        [:div.modal-content
+         [:div.box
+          (render-modal current-state)]]
+        [:button.modal-close.is-large {:on-click hide-modal}]])
      (render-page current-state)]))
 
 

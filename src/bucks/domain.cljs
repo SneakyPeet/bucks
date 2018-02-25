@@ -132,6 +132,12 @@
          :timestamp (time.coerce/to-long cljs-date)))
 
 
+(defn end-of-month [{:keys [cljs-date] :as m}]
+  (-> m
+      (update :cljs-date time/last-day-of-the-month)
+      cljs-timestamped))
+
+
 (defn wrap-age [{:keys [timestamp] :as birthday}]
   (assoc birthday
          :age (time/in-years (time/interval
@@ -460,7 +466,8 @@
                         :self-growth-percent self-growth-percent
                         :transaction-growth-percent transaction-growth-percent
                         :growth-months (year-growth-months start monthly-values transactions)
-                        :goals goals)]))))))
+                        :goals goals)])))
+         (into {}))))
 
 
 (defn monthly-interest [annual-percentage]
