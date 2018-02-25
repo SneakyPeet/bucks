@@ -100,6 +100,9 @@
   (draw-chart js/google.visualization.ColumnChart id data opt))
 
 
+(def alternate-chart-colors ["#ffde56" "#3372dd"])
+
+
 ;;;; COMPONENTS
 
 (def number-formatter (js/Intl.NumberFormat.))
@@ -137,7 +140,16 @@
   [:div {:id chart-id}])
 
 
-(defn color-level [heading format value]
+(defn level-item [heading format value & [class key]]
+  [:div.level-item (if key {:key key} {})
+   [:div.has-text-centered
+    [:p.heading heading]
+    [:p.title
+     {:class (or class "has-text-light")}
+     (format value)]]])
+
+
+(defn color-level-item [heading format value]
   [:div.level-item
    [:div.has-text-centered
     [:p.heading heading]
@@ -203,9 +215,22 @@
            data-table)
       {:title "CONTRIBUTIONS"
        :isStacked true
-       :colors ["#ffde56" "#3372dd"]
+       :colors alternate-chart-colors
        :trendlines {0 {:color "#00ffd4"}}
        :vAxis {:baselineColor "red"}}))))
+
+
+(defn year-growth-pie [self-growth-precent transaction-growth-percent]
+  (chart
+   "year-growth-pie"
+   (fn [id]
+     (draw-pie-chart
+      id
+      (data-table
+       [["type" "%"]
+        ["transactions" (max 0 transaction-growth-percent)]
+        ["growth" (max 0 self-growth-precent)]])
+      {:colors alternate-chart-colors}))))
 
 
 (defmethod render-modal :year [{:keys [modal data]}]
@@ -213,16 +238,24 @@
         {:keys [monthly-values goals start wi growth-months growth-year self-growth-percent
                 transactions end transaction-growth-percent transaction-total salary] :as data}
         (get-in data [:years year])]
-    (let [growth-months (map domain/end-of-month growth-months)]
-      (prn growth-months)
+    (let [growth-months (map domain/end-of-month growth-months)
+          actual-end end]
       [:div
        [:h1.title.has-text-light.has-text-centered year]
        [:div.level
-        (color-level "YTD" format-% growth-year)
-        (color-level "WI" format-num wi)
-        (color-level "SALARY" format-% salary)]
+        (color-level-item "YTD" format-% growth-year)
+        (color-level-item "WI" format-num wi)
+        (color-level-item "SALARY" format-% salary)]
        (year-growth-chart year start goals growth-months)
-       (year-transactions-chart growth-months)])))
+       [:div.level.space
+        (level-item "ACTUAL" format-num end)
+        (map-indexed
+         (fn [i {:keys [name end]}]
+           (level-item name format-num end (color-num (- actual-end end)) i))
+         goals)]
+       (year-transactions-chart growth-months)
+       (year-growth-pie self-growth-percent transaction-growth-percent)
+       ])))
 
 
 ;;;; ASSET MODAL

@@ -45,3 +45,7 @@ html {
   align-items: center;
   height: 100%;
 }
+
+.space {
+  margin: 20px 0;
+}
