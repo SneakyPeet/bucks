@@ -234,8 +234,29 @@
        (group-by :month)))
 
 
-;;;;; QUERIES
+(defn with-running-total [transactions cljs-date]
+  (loop [transactions transactions
+         total 0
+         result [(-> transactions first
+                     (assoc :total 0)
+                     (update :cljs-date #(time/minus % (time/minutes 1))))]]
+    (if (empty? transactions)
+      (map cljs-timestamped result)
+      (let [[a b] transactions
+            total (or (+ total (:amount a)) 0)
+            base (assoc a :total total)
+            transaction-group
+            (if (nil? b)
+              [base (assoc base :cljs-date cljs-date)]
+              [base (assoc base :cljs-date (-> b :cljs-date (time/minus (time/minutes 1))))])]
+        (recur
+         (rest transactions)
+         total
+         (into result transaction-group)
+         )))))
 
+
+;;;;; QUERIES
 
 (defn birthday [coll]
   (->> coll
@@ -372,7 +393,7 @@
                 {:keys [value]} (last monthly-values)
                 contribution (contribution-amount transactions)
                 growth (growth-amount monthly-values)
-                self-growth (- growth contribution)]
+                self-growth (- value contribution)]
             [t {:asset-type t
                 :monthly-values monthly-values
                 :growth-all-time (growth-all-time monthly-values)

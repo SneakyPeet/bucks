@@ -162,6 +162,18 @@
 (def nothing (constantly nil))
 
 
+(defn growth-pie [self-growth-precent transaction-growth-percent]
+  (chart
+   "growth-pie"
+   (fn [id]
+     (draw-pie-chart
+      id
+      (data-table
+       [["type" "%"]
+        ["growth by contributions" (max 0 transaction-growth-percent)]
+        ["growth by interest" (max 0 self-growth-precent)]])
+      {:colors alternate-chart-colors}))))
+
 ;;;; YEAR MODAL
 
 (defn year-growth-chart [year start goals growth-months]
@@ -222,19 +234,6 @@
        :vAxis {:baselineColor "red"}}))))
 
 
-(defn year-growth-pie [self-growth-precent transaction-growth-percent]
-  (chart
-   "year-growth-pie"
-   (fn [id]
-     (draw-pie-chart
-      id
-      (data-table
-       [["type" "%"]
-        ["growth by contributions" (max 0 transaction-growth-percent)]
-        ["growth by interest" (max 0 self-growth-precent)]])
-      {:colors alternate-chart-colors}))))
-
-
 (defn year-monthly-targets [goals growth-months]
   (when-not (empty? goals)
     [:div
@@ -285,13 +284,45 @@
              (level-item (str "Required for " name) format-num goal-growth (color-num (- growth goal-growth)) i)))
          goals)]
        (year-transactions-chart growth-months)
-       (year-growth-pie self-growth-percent transaction-growth-percent)
+       (growth-pie self-growth-percent transaction-growth-percent)
        (year-monthly-targets goals growth-months)])))
 
 
-;;;; ASSET MODAL
-(defmethod render-modal :asset-group [state]
-  [:div "foo"])
+;;;; ASSET-GROUP MODAL
+
+(defn asset-chart [monthly-values transactions]
+  (chart
+   "asset-chart"
+   (fn [id]
+     (let [monthly-values (->> monthly-values
+                               (map domain/end-of-month))
+           transactions (domain/with-running-total transactions (-> monthly-values last :cljs-date))]
+       (draw-area-chart
+        id
+        (->> (map (juxt :date :value nothing) monthly-values)
+             (into (map (juxt :date nothing :total) transactions))
+             (into [["date" "value" "transactions"]])
+             data-table)
+        {:title "GROWTH"})))))
+
+
+(defmethod render-modal :asset-group [{:keys [modal data]}]
+  (let [asset-group (:data modal)
+        {:keys [monthly-values asset-type growth-month value
+                growth-all-time growth-amount self-growth-amount growth-year
+                transactions contribution-growth-amount]}
+        (get-in data [:asset-groups asset-group])]
+    [:div
+     [:h1.title.has-text-light.has-text-centered asset-group]
+     [:div.level
+      (level-item "VALUE" format-num value)
+      (color-level-item "ALL TIME" format-% growth-all-time)
+      (color-level-item "YTD" format-% growth-year)
+      (color-level-item "MTD" format-% growth-month)]
+     (asset-chart monthly-values transactions)
+     [:small.has-text-grey
+      "* Values are calculated monthly and might result in lag between the transaction and value"]
+     (growth-pie self-growth-amount contribution-growth-amount)]))
 
 
 ;;;; MAIN PAGE
