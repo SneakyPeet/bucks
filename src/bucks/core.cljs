@@ -325,6 +325,53 @@
      (growth-pie self-growth-amount contribution-growth-amount)]))
 
 
+;;;; ASSETS MODAL
+
+(defn asset-history [values transactions]
+  (let [values (->> values
+                    (map (fn [{:keys [date cljs-date value]}]
+                           {:date date :cljs-date cljs-date :value value :note "value adjust" :class nil})))
+        transactions (->> transactions
+                          (map
+                           (fn [{:keys [date cljs-date amount]}]
+                             {:date date :cljs-date cljs-date :value amount
+                              :note (if (pos? amount) "deposit" "withdrawal")
+                              :class (color-num amount)})))
+        coll (->> (into values transactions)
+                  (sort-by :date)
+                  reverse)]
+    [:table.table.is-narrow.is-fullwidth
+     [:tbody
+      (map-indexed
+       (fn [i {:keys [cljs-date value note class]}]
+         [:tr {:key i :class class}
+          [:td (time.format/unparse (time.format/formatter "yyyy-MM-dd") cljs-date)]
+          [:td note]
+          [:td (format-num value)]])
+       coll)]]
+    ))
+
+(defmethod render-modal :asset [{:keys [modal data]}]
+  (let [asset (:data modal)
+        {:keys [monthly-values asset-type exclude-from-net growth-month name value
+                growth-all-time growth-amount closed? values self-growth-amount
+                growth-year units transactions start-value contribution-growth-amount]}
+        (get-in data [:assets asset])]
+    [:div
+     [:h1.title.has-text-light.has-text-centered
+      asset " - " asset-type
+      (when (> units 0) [:span " - " units])]
+     [:div.level
+      (level-item "VALUE" format-num value)
+      (color-level-item "ALL TIME" format-% growth-all-time)
+      (color-level-item "YTD" format-% growth-year)
+      (color-level-item "MTD" format-% growth-month)]
+     (asset-chart monthly-values transactions)
+     [:small.has-text-grey
+      "* Values are calculated monthly and might result in lag between the transaction and value"]
+     (growth-pie self-growth-amount contribution-growth-amount)
+     (asset-history values transactions)]))
+
 ;;;; MAIN PAGE
 
 
@@ -405,7 +452,7 @@
    (map-indexed
     (fn [i {:keys [name asset-type growth-month value] :as d}]
       [:div.column.is-2.has-text-centered.asset-button
-       {:key i :on-click #(show-modal :asset-group name)}
+       {:key i :on-click #(show-modal :asset name)}
        [:p.heading.has-text-light name]
        [:p.heading asset-type]
        (when-not (= 0 value) [:p.heading (format-num value)])

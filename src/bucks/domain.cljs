@@ -319,9 +319,10 @@
                           (map timestamped)
                           (sort-by :timestamp))
         monthly-values (monthly-values :value values)
-        contribution (contribution-amount transaction)
+        contribution (contribution-amount transactions)
         growth (growth-amount monthly-values)
-        self-growth (- growth contribution)]
+        value (:value (last monthly-values))
+        self-growth (- value contribution)]
     (-> details
         timestamped
         (update :exclude-from-net #(= yes %))
