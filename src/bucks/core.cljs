@@ -394,6 +394,50 @@
                              :else "has-text-success"))
 
 
+(defn wi-chart [monthly-wi wi-goals]
+  (chart
+   "wi-chart"
+   (fn [id]
+     (let [goal-headings (->> wi-goals (map :name))
+           headings (into ["month" "value"] goal-headings)
+           get-values (->> (range (count wi-goals))
+                           (map (constantly nothing))
+                           (into [:date :wi])
+                           (apply juxt)
+                           )
+           base-row (->> (+ 2 (count wi-goals))
+                         range
+                         (map nothing)
+                         vec)
+           goals
+           (->> wi-goals
+                (map-indexed
+                 (fn [i {:keys [graph]}]
+                   (let [[a b] graph
+                         n (+ 2 i)]
+                     [(assoc base-row
+                             0 (:date a)
+                             n (:wi a))
+                      (assoc base-row
+                             0 (:date b)
+                             n (:wi b))])))
+                (reduce into))
+           growth (->> monthly-wi
+                       (map domain/end-of-month)
+                       (map get-values))]
+       (draw-area-chart
+        id
+        (->> growth
+             (into goals)
+             (into [headings])
+             data-table)
+        {:title "WEALTH INDEX"
+         :explorer {:axis nil
+                    :actions ["dragToZoom", "rightClickToReset"]
+                    :keepInBounds true}})))))
+
+
+
 (defn growth-chart [monthly-wi]
   (chart
    "growth-chart"
@@ -448,6 +492,20 @@
     asset-groups)])
 
 
+(defn asset-group-pie [asset-groups]
+  (chart
+   "asset-distribution"
+   (fn [id]
+     (draw-pie-chart
+      id
+      (->> asset-groups
+           vals
+           (map (juxt :asset-type :value))
+           (into [["asset type" "%"]])
+           data-table)
+      {:title "ASSET DISTRIBUTION"}))))
+
+
 (defn assets [assets]
   [:div.columns.is-multiline.is-centered
    (map-indexed
@@ -479,6 +537,12 @@
     lifetimes)])
 
 
+(defn seperator [text]
+  [:div.level.is-marginless
+   [:div.level-item
+    [:p.heading.is-marginless text]]])
+
+
 (defmethod render-page :main [{:keys [data modal]}]
   (let [{:keys [wi asset-value growth-month growth-year]} (:current-values data)]
     [:div.columns.is-multiline.is-centered
@@ -486,16 +550,22 @@
      (col 3 (info-box "NET" (format-num asset-value)))
      (col 3 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
      (col 3 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
-     [:div.column.is-2.has-text-centered (wealth-guage wi)]
-     ;;todo asset groups
-     (col 7 (growth-chart (:monthly-wi data)))
-     ;;wi
-     (col 7 (salaries-chart (:salaries data)))
+     (col 2 (wealth-guage wi))
+     (col 7 (wi-chart (:monthly-wi data) (:wi-goals data)))
+     (col 3 (asset-group-pie (:asset-groups data)))
+     (col 6 (growth-chart (:monthly-wi data)))
+     (col 6 (salaries-chart (:salaries data)))
+     (seperator "Money Lifetime")
      [:div.column.is-12 (money-lifetimes (:money-lifetimes data))]
+     (seperator "Years")
      (col 12 (years (:years data)))
+     (seperator "Asset groups")
      (col 12 (asset-groups (:asset-groups data)))
+     (seperator "Assets")
      (col 12 (assets (->> data :assets vals (filter (comp not :closed?)))))
+     (seperator "Closed Assets")
      (col 12 (assets (->> data :assets vals (filter :closed?))))
+     (seperator "drag graphs to zoom and double click to reset")
      ]))
 
 
