@@ -401,7 +401,8 @@
      (draw-area-chart
       id
       (->> monthly-wi
-           (map (juxt :date :value))
+           (map domain/end-of-month)
+           (map (juxt :date :asset-value))
            (into [["month" "value"]])
            data-table)
       {:title "GROWTH"}))))

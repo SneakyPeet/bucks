@@ -375,7 +375,7 @@
               (assoc m
                      :age age
                      :salary value
-                     :asset-value asset-value
+                     :asset-value (or asset-value 0)
                      :wi (wi asset-value value age)
                      )))))))
 
