@@ -3,7 +3,8 @@
             [bucks.example :as example]
             [bucks.parse :as parse]
             [rum.core :as rum]
-            [cljs-time.format :as time.format]))
+            [cljs-time.format :as time.format]
+            [clojure.string :as string]))
 
 (enable-console-print!)
 
@@ -571,9 +572,47 @@
 
 ;;;;APP
 
+(defmethod render-modal :help [state]
+  [:div.has-text-light
+   [:p "To view your bucks upload a csv file with your data. The file can have lines as described below.
+        Each Item should be on a new line. Scroll down to see an example file.
+        All data is local to your computer and is NOT uploaded anywhere."]
+   [:hr]
+   (map-indexed
+    (fn [i [key values description]]
+      [:div.has-text-light {:key i}
+       [:strong.has-text-white (->> (string/split key "-")
+                                    (map string/capitalize)
+                                    (string/join " "))]
+       [:p description]
+       [:p.has-text-warning
+        [:span.has-text-primary key] " | "
+        (->> values
+             (map name)
+             (string/join " | "))]
+       [:hr]
+       ])
+    domain/data-types-config)
+   [:strong.has-text-white "Example"]
+   [:br]
+   [:pre
+    [:code example/test-piped-csv]]])
+
+
+(defmethod render-modal :upload [state]
+  "THIS IS UPLOAD")
+
+
 (rum/defc app < rum/reactive [state]
   (let [current-state (rum/react state)]
     [:div
+     [:nav.navbar.is-black
+      [:div.navbar-menu
+       [:div.navbar-end
+        [:a.navbar-item {:on-click #(show-modal :help nil)}
+         [:span.icon [:i.fa.fa-question-circle]]]
+        [:a.navbar-item {:on-click #(show-modal :upload nil)}
+         [:span.icon [:i.fa.fa-upload]]]]]]
      (when-not (= :hidden (get-in current-state [:modal :key]))
        [:div.modal.is-active
         [:div.modal-background {:on-click hide-modal}]
@@ -581,7 +620,8 @@
          [:div.box
           (render-modal current-state)]]
         [:button.modal-close.is-large {:on-click hide-modal}]])
-     (render-page current-state)]))
+     [:div.section
+      (render-page current-state)]]))
 
 
 (defmethod render-page :loading [state]

@@ -1,7 +1,8 @@
 (ns bucks.domain
   (:require [cljs.spec.alpha :as s]
             [cljs-time.core :as time]
-            [cljs-time.coerce :as time.coerce]))
+            [cljs-time.coerce :as time.coerce]
+            [clojure.string :as string]))
 
 
 ;;;; DEFAULTS
@@ -69,14 +70,14 @@
 (def data-types-config
   [["date-of-birth"
     [:d/year :d/month :d/day]
-    "Your date of birth to use in wealth index calculations."]
+    "Your date of birth. Used in the wealth index calculations."]
    ["salary"
     [:d/name :d/year :d/month :d/day :d/value]
-    "A Salary Change. Name is the Name Of Employer. Value the Monthly Salary Before Tax."]
+    "A Salary Change. Name is the Name Of Employer. Value is your Monthly Salary Before Tax."]
    ["open-asset"
     [:d/name :d/year :d/month :d/day :d/asset-type :d/value :d/units :d/exclude-from-net]
-    (str "A new Asset. Name is the name of the asset. Asset-type should be one of the following " asset-types
-         ". Requires opening value and units. Exclude from Net indicates if an asset should be excluded for the wealth index and total asset value calculations (can be y or n). Asset value is defaulted to 0 and an initial transaction can be added using 'transaction'.")]
+    (str "A new Asset. Name is the name of the asset. Asset-type should be one of the following " (string/join ", " asset-types)
+         ". Requires opening value and units (leave as 0 if not relevant). Exclude from Net indicates if an asset should be excluded for the wealth index and total asset value calculations (can be y or n).")]
    ["close-asset"
     [:d/name :d/year :d/month :d/day :d/value]
     "Close an existing asset. Name is the name of the asset. Value is the value of the asset before it closed"]
