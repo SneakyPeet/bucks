@@ -10,4 +10,10 @@ see example.cljs for an example of a pipe delimited csv file.
 ![Dash view](dash.png)
 
 
-![Asset view](asset.png)
+![Year view](year.jpg)
+
+
+![Asset view](asset.jpg)
+
+
+![Asset Group view](asset-group.jpg)
