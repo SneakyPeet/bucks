@@ -16,6 +16,7 @@
                        domain/all-your-bucks))
 
 (defonce *state (atom {:page :loading
+                       :delimiter parse/pipe
                        :modal {:key :hidden :data nil}
                        :data initial-data}))
 
@@ -570,58 +571,124 @@
      ]))
 
 
+;;;;FILE UPLOAD
+
+(defn set-file-data [data] (swap! *state #(assoc-in % [:modal :data] data)))
+
+(defn set-app-data [data]
+  (prn (:wi-goals data))
+  (swap! *state #(assoc % :data data)))
+
+(defn set-delimiter [d] (swap! *state #(assoc % :delimiter d)))
+
+(rum/defc rerender [] [:div])
+
+
+(defmethod render-modal :upload [{:keys [modal delimiter]}]
+  [:div.has-text-light
+   [:h1.heading.has-text-centered "Choose Your File Delimiter"]
+   [:div.buttons.is-centered
+    (map-indexed
+     (fn [i d]
+       [:button.button
+        {:key i
+         :class (when (= delimiter d) "is-info")
+         :on-click #(set-delimiter d)}
+        d])
+     parse/seperators)]
+   [:form
+    [:div.file.is-centered
+     [:label.file-label
+      [:input.file-input {:type "file" :name "storage"
+                          :on-change (fn [e]
+                                       (let [file (aget (.. e -target -files) 0)
+                                             reader (js/FileReader.)]
+                                         (set! (.-onload reader)
+                                               #(set-file-data (.. % -target -result)))
+                                         (.readAsText reader file)))}]
+      [:span.file-cta
+       [:span.file-icon
+        [:i.fa.fa-upload]]
+       [:span.file-label "Upload"]]]]]
+   (when-let [content (:data modal)]
+     (let [result
+           (->> content
+                (parse/parse delimiter))
+           errors
+           (->> result
+                (filter (comp not :valid?))
+                (map :error))]
+       (if-not (empty? errors)
+         [:div.content
+          [:hr]
+          [:p.heading.has-text-centered.has-text-danger "Oh no you have the following errors"]
+          [:ul
+           (map-indexed
+            (fn [i e]
+              [:li {:key i} e])
+            errors)]]
+         [:div.content
+          [:hr]
+          [:p.heading.has-text-centered.has-text-primary "Sweet your file has no errors"]
+          [:div.buttons.is-centered
+           [:button.button.is-primary
+            {:on-click (fn [_]
+                         (set-app-data (-> result
+                                           parse/as-domain-values
+                                           domain/all-your-bucks))
+                         (hide-modal)
+                         (page :loading)
+                         (js/setTimeout #(page :main)))}
+            "GO"]]])))]
+
 ;;;;APP
 
-(defmethod render-modal :help [state]
-  [:div.has-text-light
-   [:p "To view your bucks upload a csv file with your data. The file can have lines as described below.
+  (defmethod render-modal :help [state]
+    [:div.has-text-light
+     [:p "To view your bucks upload a csv file with your data. The file can have lines as described below.
         Each Item should be on a new line. Scroll down to see an example file.
         All data is local to your computer and is NOT uploaded anywhere."]
-   [:hr]
-   (map-indexed
-    (fn [i [key values description]]
-      [:div.has-text-light {:key i}
-       [:strong.has-text-white (->> (string/split key "-")
-                                    (map string/capitalize)
-                                    (string/join " "))]
-       [:p description]
-       [:p.has-text-warning
-        [:span.has-text-primary key] " | "
-        (->> values
-             (map name)
-             (string/join " | "))]
-       [:hr]
-       ])
-    domain/data-types-config)
-   [:strong.has-text-white "Example"]
-   [:br]
-   [:pre
-    [:code example/test-piped-csv]]])
+     [:hr]
+     (map-indexed
+      (fn [i [key values description]]
+        [:div.has-text-light {:key i}
+         [:strong.has-text-white (->> (string/split key "-")
+                                      (map string/capitalize)
+                                      (string/join " "))]
+         [:p description]
+         [:p.has-text-warning
+          [:span.has-text-primary key] " | "
+          (->> values
+               (map name)
+               (string/join " | "))]
+         [:hr]
+         ])
+      domain/data-types-config)
+     [:strong.has-text-white "Example"]
+     [:br]
+     [:pre
+      [:code example/test-piped-csv]]])
 
 
-(defmethod render-modal :upload [state]
-  "THIS IS UPLOAD")
-
-
-(rum/defc app < rum/reactive [state]
-  (let [current-state (rum/react state)]
-    [:div
-     [:nav.navbar.is-black
-      [:div.navbar-menu
-       [:div.navbar-end
-        [:a.navbar-item {:on-click #(show-modal :help nil)}
-         [:span.icon [:i.fa.fa-question-circle]]]
-        [:a.navbar-item {:on-click #(show-modal :upload nil)}
-         [:span.icon [:i.fa.fa-upload]]]]]]
-     (when-not (= :hidden (get-in current-state [:modal :key]))
-       [:div.modal.is-active
-        [:div.modal-background {:on-click hide-modal}]
-        [:div.modal-content
-         [:div.box
-          (render-modal current-state)]]
-        [:button.modal-close.is-large {:on-click hide-modal}]])
-     [:div.section
-      (render-page current-state)]]))
+  (rum/defc app < rum/reactive [state]
+    (let [current-state (rum/react state)]
+      [:div
+       [:nav.navbar.is-black
+        [:div.navbar-menu
+         [:div.navbar-end
+          [:a.navbar-item {:on-click #(show-modal :help nil)}
+           [:span.icon [:i.fa.fa-question-circle]]]
+          [:a.navbar-item {:on-click #(show-modal :upload nil)}
+           [:span.icon [:i.fa.fa-upload]]]]]]
+       (when-not (= :hidden (get-in current-state [:modal :key]))
+         [:div.modal.is-active
+          [:div.modal-background {:on-click hide-modal}]
+          [:div.modal-content
+           [:div.box
+            (render-modal current-state)]]
+          [:button.modal-close.is-large {:on-click hide-modal}]])
+       [:div.section
+        (render-page current-state)]])))
 
 
 (defmethod render-page :loading [state]
