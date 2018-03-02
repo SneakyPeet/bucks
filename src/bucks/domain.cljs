@@ -7,7 +7,7 @@
 
 ;;;; DEFAULTS
 
-(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "CFD" "ETF" "UnitTrust"})
+(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "CFD" "ETF" "UnitTrust" "Other"})
 (def yes "y")
 (def no "n")
 
@@ -58,7 +58,7 @@
 
 (s/def :d/exclude-from-net #(contains? #{yes no} %))
 
-(s/def :d/inflation pos?)
+(s/def :d/inflation (comp not neg?))
 
 (s/def :d/percent-of-salary pos?)
 
@@ -529,15 +529,15 @@
         salaries (salaries coll)
         monthly-salaries (monthly-values :value salaries)
         assets (assets coll)
-        open-assets (->> assets
-                         (filter (fn [[_ v]] (false? (:closed? v)))))
-        monthly-asset-values (monthly-asset-values (vals open-assets))
+        net-assets (->> assets
+                        (filter (fn [[_ v]] (:exclude-from-net v))))
+        monthly-asset-values (monthly-asset-values (vals net-assets))
         monthly-wi (monthly-wi birthday monthly-salaries monthly-asset-values)
         current-values (-> (last monthly-wi)
                            (assoc :growth-year (growth-year monthly-asset-values)
                                   :growth-month (growth-month monthly-asset-values)))
-        asset-groups (asset-groups assets)
-        years (years assets monthly-salaries monthly-wi year-goals)
+        asset-groups (asset-groups net-assets)
+        years (years net-assets monthly-salaries monthly-wi year-goals)
         wi-goals (wi-goals coll birthday monthly-wi)
         money-lifetimes (money-lifetimes current-values coll)
         ]

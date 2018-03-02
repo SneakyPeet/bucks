@@ -16,7 +16,7 @@
                        domain/all-your-bucks))
 
 (defonce *state (atom {:page :loading
-                       :delimiter parse/pipe
+                       :delimiter parse/semicolon
                        :modal {:key :hidden :data nil}
                        :data initial-data}))
 
@@ -576,7 +576,6 @@
 (defn set-file-data [data] (swap! *state #(assoc-in % [:modal :data] data)))
 
 (defn set-app-data [data]
-  (prn (:wi-goals data))
   (swap! *state #(assoc % :data data)))
 
 (defn set-delimiter [d] (swap! *state #(assoc % :delimiter d)))
