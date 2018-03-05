@@ -397,6 +397,7 @@
                 growth (growth-amount daily-values)
                 self-growth (- value contribution)]
             [t {:asset-type t
+                :assets assets
                 :daily-values daily-values
                 :growth-all-time (growth-all-time daily-values)
                 :growth-year (growth-year daily-values)

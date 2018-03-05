@@ -174,7 +174,8 @@
        [["type" "%"]
         ["growth by contributions" (max 0 transaction-growth-percent)]
         ["growth by interest" (max 0 self-growth-precent)]])
-      {:colors alternate-chart-colors}))))
+      {:title "GROWTH DISTRIBUTION"
+       :colors alternate-chart-colors}))))
 
 ;;;; YEAR MODAL
 
@@ -305,9 +306,22 @@
         {:title "GROWTH"})))))
 
 
+(defn asset-group-item-pie [assets]
+  (chart
+   "asset-group-item-pie"
+   (fn [id]
+     (draw-pie-chart
+      id
+      (->> assets
+           (map (juxt :name :value))
+           (into [["asset" "%"]])
+           data-table)
+      {:title "ASSET DISTRIBUTION"}))))
+
+
 (defmethod render-modal :asset-group [{:keys [modal data]}]
   (let [asset-group (:data modal)
-        {:keys [daily-values asset-type growth-month value
+        {:keys [daily-values asset-type growth-month value assets
                 growth-all-time growth-amount self-growth-amount growth-year
                 transactions contribution-growth-amount]}
         (get-in data [:asset-groups asset-group])]
@@ -319,6 +333,7 @@
       (color-level-item "YTD" format-% growth-year)
       (color-level-item "MTD" format-% growth-month)]
      (asset-chart daily-values transactions)
+     (asset-group-item-pie assets)
      (growth-pie self-growth-amount contribution-growth-amount)]))
 
 
