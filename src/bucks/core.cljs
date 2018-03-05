@@ -178,7 +178,7 @@
 
 ;;;; YEAR MODAL
 
-(defn year-growth-chart [year start goals growth-months]
+(defn year-growth-chart [year start goals daily-values]
   (chart
    "year-growth-chart"
    (fn [id]
@@ -206,7 +206,7 @@
                      [(assoc goal-start-row n start)
                       (assoc goal-end-row n end)])))
                 (reduce into))
-           growth (->> growth-months
+           growth (->> daily-values
                        (map get-values)
                        (#(conj % growth-start-row)))]
        (draw-area-chart
@@ -266,18 +266,17 @@
 
 (defmethod render-modal :year [{:keys [modal data]}]
   (let [year (:data modal)
-        {:keys [monthly-values goals start wi growth-months growth-year self-growth-percent
+        {:keys [daily-values goals start wi growth-months growth-year self-growth-percent
                 transactions end transaction-growth-percent transaction-total salary] :as data}
         (get-in data [:years year])]
-    (let [growth-months (map domain/end-of-month growth-months)
-          growth (- end start)]
+    (let [growth (- end start)]
       [:div
        [:h1.title.has-text-light.has-text-centered year]
        [:div.level
         (color-level-item "YTD" format-% growth-year)
         (color-level-item "WI" format-num wi)
         (color-level-item "SALARY" format-% salary)]
-       (year-growth-chart year start goals growth-months)
+       (year-growth-chart year start goals daily-values)
        [:div.level.space
         (level-item "ACTUAL" format-num growth)
         (map-indexed
@@ -292,16 +291,14 @@
 
 ;;;; ASSET-GROUP MODAL
 
-(defn asset-chart [monthly-values transactions]
+(defn asset-chart [daily-values transactions]
   (chart
    "asset-chart"
    (fn [id]
-     (let [monthly-values (->> monthly-values
-                               (map domain/end-of-month))
-           transactions (domain/with-running-total transactions (-> monthly-values last :cljs-date))]
+     (let [transactions (domain/with-running-total transactions (-> daily-values last :cljs-date))]
        (draw-area-chart
         id
-        (->> (map (juxt :date :value nothing) monthly-values)
+        (->> (map (juxt :date :value nothing) daily-values)
              (into (map (juxt :date nothing :total) transactions))
              (into [["date" "value" "transactions"]])
              data-table)
@@ -310,7 +307,7 @@
 
 (defmethod render-modal :asset-group [{:keys [modal data]}]
   (let [asset-group (:data modal)
-        {:keys [monthly-values asset-type growth-month value
+        {:keys [daily-values asset-type growth-month value
                 growth-all-time growth-amount self-growth-amount growth-year
                 transactions contribution-growth-amount]}
         (get-in data [:asset-groups asset-group])]
@@ -321,9 +318,7 @@
       (color-level-item "ALL TIME" format-% growth-all-time)
       (color-level-item "YTD" format-% growth-year)
       (color-level-item "MTD" format-% growth-month)]
-     (asset-chart monthly-values transactions)
-     [:small.has-text-grey
-      "* Values are calculated monthly and might result in lag between the transaction and value"]
+     (asset-chart daily-values transactions)
      (growth-pie self-growth-amount contribution-growth-amount)]))
 
 
@@ -353,9 +348,10 @@
        coll)]]
     ))
 
+
 (defmethod render-modal :asset [{:keys [modal data]}]
   (let [asset (:data modal)
-        {:keys [monthly-values asset-type exclude-from-net growth-month name value
+        {:keys [daily-values asset-type exclude-from-net growth-month name value
                 growth-all-time growth-amount closed? values self-growth-amount
                 growth-year units transactions start-value contribution-growth-amount]}
         (get-in data [:assets asset])]
@@ -368,9 +364,7 @@
       (color-level-item "ALL TIME" format-% growth-all-time)
       (color-level-item "YTD" format-% growth-year)
       (color-level-item "MTD" format-% growth-month)]
-     (asset-chart monthly-values transactions)
-     [:small.has-text-grey
-      "* Values are calculated monthly and might result in lag between the transaction and value"]
+     (asset-chart daily-values transactions)
      (growth-pie self-growth-amount contribution-growth-amount)
      (asset-history values transactions)]))
 
@@ -396,7 +390,7 @@
                              :else "has-text-success"))
 
 
-(defn wi-chart [monthly-wi wi-goals]
+(defn wi-chart [daily-wi wi-goals]
   (chart
    "wi-chart"
    (fn [id]
@@ -424,8 +418,7 @@
                              0 (:date b)
                              n (:wi b))])))
                 (reduce into))
-           growth (->> monthly-wi
-                       (map domain/end-of-month)
+           growth (->> daily-wi
                        (map get-values))]
        (draw-area-chart
         id
@@ -440,14 +433,13 @@
 
 
 
-(defn growth-chart [monthly-wi]
+(defn growth-chart [daily-wi]
   (chart
    "growth-chart"
    (fn [id]
      (draw-area-chart
       id
-      (->> monthly-wi
-           (map domain/end-of-month)
+      (->> daily-wi
            (map (juxt :date :asset-value))
            (into [["month" "value"]])
            data-table)
@@ -553,9 +545,9 @@
      (col 3 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
      (col 3 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
      (col 2 (wealth-guage wi))
-     (col 7 (wi-chart (:monthly-wi data) (:wi-goals data)))
+     (col 7 (wi-chart (:daily-wi data) (:wi-goals data)))
      (col 3 (asset-group-pie (:asset-groups data)))
-     (col 6 (growth-chart (:monthly-wi data)))
+     (col 6 (growth-chart (:daily-wi data)))
      (col 6 (salaries-chart (:salaries data)))
      (seperator "Money Lifetime")
      [:div.column.is-12 (money-lifetimes (:money-lifetimes data))]
