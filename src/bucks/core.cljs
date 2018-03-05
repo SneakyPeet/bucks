@@ -492,11 +492,12 @@
 (defn asset-groups [asset-groups]
   [:div.columns.is-multiline.is-centered
    (map-indexed
-    (fn [i [name {:keys [growth-year] :as d}]]
+    (fn [i [name {:keys [growth-year growth-all-time] :as d}]]
       [:div.column.is-2.has-text-centered.asset-button
        {:key i :on-click #(show-modal :asset-group name)}
        [:p.heading.has-text-light name]
        [:p.heading {:class (color-num growth-year)} (format-% growth-year)]
+       [:p.heading {:class (color-num growth-all-time)} (format-% growth-all-time)]
        ])
     asset-groups)])
 
@@ -518,13 +519,14 @@
 (defn assets [assets]
   [:div.columns.is-multiline.is-centered
    (map-indexed
-    (fn [i {:keys [name asset-type growth-year value] :as d}]
+    (fn [i {:keys [name asset-type growth-year growth-all-time value] :as d}]
       [:div.column.is-2.has-text-centered.asset-button
        {:key i :on-click #(show-modal :asset name)}
        [:p.heading.has-text-light name]
        [:p.heading asset-type]
        (when-not (= 0 value) [:p.heading (format-num value)])
        (when-not (= 0 value) [:p.heading {:class (color-num growth-year)} (format-% growth-year)])
+       (when-not (= 0 value) [:p.heading {:class (color-num growth-all-time)} (format-% growth-all-time)])
        ])
     assets)])
 
