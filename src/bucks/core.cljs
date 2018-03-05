@@ -351,7 +351,7 @@
 
 (defmethod render-modal :asset [{:keys [modal data]}]
   (let [asset (:data modal)
-        {:keys [daily-values asset-type exclude-from-net growth-month name value
+        {:keys [daily-values asset-type include-in-net growth-month name value
                 growth-all-time growth-amount closed? values self-growth-amount
                 growth-year units transactions start-value contribution-growth-amount]}
         (get-in data [:assets asset])]

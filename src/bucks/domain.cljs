@@ -56,7 +56,7 @@
 
 (s/def :d/asset-type #(contains? asset-types %))
 
-(s/def :d/exclude-from-net #(contains? #{yes no} %))
+(s/def :d/include-in-net #(contains? #{yes no} %))
 
 (s/def :d/inflation (comp not neg?))
 
@@ -75,9 +75,9 @@
     [:d/name :d/year :d/month :d/day :d/value]
     "A Salary Change. Name is the Name Of Employer. Value is your Monthly Salary Before Tax."]
    ["open-asset"
-    [:d/name :d/year :d/month :d/day :d/asset-type :d/value :d/units :d/exclude-from-net]
+    [:d/name :d/year :d/month :d/day :d/asset-type :d/value :d/units :d/include-in-net]
     (str "A new Asset. Name is the name of the asset. Asset-type should be one of the following " (string/join ", " asset-types)
-         ". Requires opening value and units (leave as 0 if not relevant). Exclude from Net indicates if an asset should be excluded for the wealth index and total asset value calculations (can be y or n).")]
+         ". Requires opening value and units (leave as 0 if not relevant). Include in Net indicates if an asset should be included in the wealth index and total asset value calculations (can be y or n).")]
    ["close-asset"
     [:d/name :d/year :d/month :d/day :d/value]
     "Close an existing asset. Name is the name of the asset. Value is the value of the asset before it closed"]
@@ -326,7 +326,7 @@
         self-growth (- value contribution)]
     (-> details
         timestamped
-        (update :exclude-from-net #(= yes %))
+        (update :include-in-net #(= yes %))
         (assoc :closed? closed?
                :values values
                :transactions transactions
@@ -536,7 +536,7 @@
         daily-salaries (daily-values :value salaries)
         assets (assets coll)
         net-assets (->> assets
-                        (filter (fn [[_ v]] (not (:exclude-from-net v)))))
+                        (filter (fn [[_ v]] (:include-in-net v))))
         daily-asset-values (daily-asset-values (vals net-assets))
         daily-wi (daily-wi birthday daily-salaries daily-asset-values)
         current-values (-> (last daily-wi)
