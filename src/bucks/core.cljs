@@ -477,11 +477,11 @@
 (defn asset-groups [asset-groups]
   [:div.columns.is-multiline.is-centered
    (map-indexed
-    (fn [i [name {:keys [growth-month] :as d}]]
+    (fn [i [name {:keys [growth-year] :as d}]]
       [:div.column.is-2.has-text-centered.asset-button
        {:key i :on-click #(show-modal :asset-group name)}
        [:p.heading.has-text-light name]
-       [:p.heading {:class (color-num growth-month)} (format-% growth-month)]
+       [:p.heading {:class (color-num growth-year)} (format-% growth-year)]
        ])
     asset-groups)])
 
@@ -503,13 +503,13 @@
 (defn assets [assets]
   [:div.columns.is-multiline.is-centered
    (map-indexed
-    (fn [i {:keys [name asset-type growth-month value] :as d}]
+    (fn [i {:keys [name asset-type growth-year value] :as d}]
       [:div.column.is-2.has-text-centered.asset-button
        {:key i :on-click #(show-modal :asset name)}
        [:p.heading.has-text-light name]
        [:p.heading asset-type]
        (when-not (= 0 value) [:p.heading (format-num value)])
-       (when-not (= 0 value) [:p.heading {:class (color-num growth-month)} (format-% growth-month)])
+       (when-not (= 0 value) [:p.heading {:class (color-num growth-year)} (format-% growth-year)])
        ])
     assets)])
 
