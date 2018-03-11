@@ -58,7 +58,7 @@
 (defn draw-chart [Chart id data opt]
   (let [opt (merge
              {:animation {:startup true :duration 2000 :easing "out"}
-              :colors ["#00d1b2" "#ff385f" "#ffde56" "#3372dd"]
+              :colors ["#00d1b2" "#ff385f" "#ffde56" "#3372dd" "#EA7AF4" "#B43E8F" "#6200B3" "#3B0086"]
               :backgroundColor "none"
               :legend {:textStyle {:color chart-base-color}
                        :position "bottom"}
@@ -313,6 +313,8 @@
      (draw-pie-chart
       id
       (->> assets
+           (sort-by :value)
+           reverse
            (map (juxt :name :value))
            (into [["asset" "%"]])
            data-table)
@@ -321,7 +323,7 @@
 
 (defmethod render-modal :asset-group [{:keys [modal data]}]
   (let [asset-group (:data modal)
-        {:keys [daily-values asset-type growth-month value assets
+        {:keys [daily-values asset-type growth-month value assets self-growth-precentage
                 growth-all-time growth-amount self-growth-amount growth-year
                 transactions contribution-growth-amount]}
         (get-in data [:asset-groups asset-group])]
@@ -329,7 +331,9 @@
      [:h1.title.has-text-light.has-text-centered asset-group]
      [:div.level
       (level-item "VALUE" format-num value)
-      (color-level-item "ALL TIME" format-% growth-all-time)
+      (level-item "CONTRIBUTIONS" format-num contribution-growth-amount)]
+     [:div.level
+      (color-level-item "ALL TIME" format-% self-growth-precentage)
       (color-level-item "YTD" format-% growth-year)
       (color-level-item "MTD" format-% growth-month)]
      (asset-chart daily-values transactions)
@@ -368,15 +372,17 @@
   (let [asset (:data modal)
         {:keys [daily-values asset-type include-in-net growth-month name value
                 growth-all-time growth-amount closed? values self-growth-amount
-                growth-year units transactions start-value contribution-growth-amount]}
+                growth-year units transactions start-value contribution-growth-amount self-growth-precentage]}
         (get-in data [:assets asset])]
     [:div
      [:h1.title.has-text-light.has-text-centered
-      asset " - " asset-type
-      (when (> units 0) [:span " - " units])]
+      asset (when (> units 0) (str " (" units ")"))]
      [:div.level
+      (level-item "TYPE" identity asset-type)
       (level-item "VALUE" format-num value)
-      (color-level-item "ALL TIME" format-% growth-all-time)
+      (level-item "CONTRIBUTIONS" format-num contribution-growth-amount)]
+     [:div.level
+      (color-level-item "ALL TIME" format-% self-growth-precentage)
       (color-level-item "YTD" format-% growth-year)
       (color-level-item "MTD" format-% growth-month)]
      (asset-chart daily-values transactions)
@@ -491,15 +497,17 @@
 
 (defn asset-groups [asset-groups]
   [:div.columns.is-multiline.is-centered
-   (map-indexed
-    (fn [i [name {:keys [growth-year growth-all-time] :as d}]]
-      [:div.column.is-2.has-text-centered.asset-button
-       {:key i :on-click #(show-modal :asset-group name)}
-       [:p.heading.has-text-light name]
-       [:p.heading {:class (color-num growth-year)} (format-% growth-year)]
-       [:p.heading {:class (color-num growth-all-time)} (format-% growth-all-time)]
-       ])
-    asset-groups)])
+   (->> asset-groups
+        (sort-by first)
+        (map-indexed
+         (fn [i [name {:keys [growth-year growth-all-time value self-growth-precentage] :as d}]]
+           [:div.column.is-2.has-text-centered.asset-button
+            {:key i :on-click #(show-modal :asset-group name)}
+            [:p.heading.has-text-light name]
+            (when-not (= 0 value) [:p.heading (format-num value)])
+            [:p.heading {:class (color-num growth-year)} (format-% growth-year) " ytd"]
+            (when-not (= 0 value) [:p.heading {:class (color-num self-growth-precentage)} (format-% self-growth-precentage)])
+            ])))])
 
 
 (defn asset-group-pie [asset-groups]
@@ -510,6 +518,8 @@
       id
       (->> asset-groups
            vals
+           (sort-by :value)
+           reverse
            (map (juxt :asset-type :value))
            (into [["asset type" "%"]])
            data-table)
@@ -518,17 +528,18 @@
 
 (defn assets [assets]
   [:div.columns.is-multiline.is-centered
-   (map-indexed
-    (fn [i {:keys [name asset-type growth-year growth-all-time value] :as d}]
-      [:div.column.is-2.has-text-centered.asset-button
-       {:key i :on-click #(show-modal :asset name)}
-       [:p.heading.has-text-light name]
-       [:p.heading asset-type]
-       (when-not (= 0 value) [:p.heading (format-num value)])
-       (when-not (= 0 value) [:p.heading {:class (color-num growth-year)} (format-% growth-year)])
-       (when-not (= 0 value) [:p.heading {:class (color-num growth-all-time)} (format-% growth-all-time)])
-       ])
-    assets)])
+   (->> assets
+        (sort-by :asset-type)
+        (map-indexed
+         (fn [i {:keys [name asset-type growth-year growth-all-time value self-growth-precentage] :as d}]
+           [:div.column.is-2.has-text-centered.asset-button
+            {:key i :on-click #(show-modal :asset name)}
+            [:p.heading.has-text-light name]
+            [:p.heading asset-type]
+            (when-not (= 0 value) [:p.heading (format-num value)])
+            (when-not (= 0 value) [:p.heading {:class (color-num growth-year)} (format-% growth-year) " ytd"])
+            (when-not (= 0 value) [:p.heading {:class (color-num self-growth-precentage)} (format-% self-growth-precentage)])
+            ])))])
 
 
 (defn money-lifetimes [lifetimes]
@@ -625,15 +636,17 @@
            errors
            (->> result
                 (filter (comp not :valid?))
-                (map :error))]
+                (map (juxt :i :error)))]
+       (prn (->> result
+                 (filter (comp not :valid?))))
        (if-not (empty? errors)
          [:div.content
           [:hr]
           [:p.heading.has-text-centered.has-text-danger "Oh no you have the following errors"]
           [:ul
            (map-indexed
-            (fn [i e]
-              [:li {:key i} e])
+            (fn [i [row e]]
+              [:li {:key i} "row: " row ": " e])
             errors)]]
          [:div.content
           [:hr]

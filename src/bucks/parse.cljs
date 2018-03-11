@@ -76,7 +76,8 @@
   [separator data]
   (->> (csv/read-csv data :separator separator)
        (filter not-empty-row?)
-       (map (comp validate-row parse-row))))
+       (map-indexed (fn [i r]
+                      (-> r parse-row validate-row (assoc :i (inc i)))))))
 
 
 (defn as-domain-values

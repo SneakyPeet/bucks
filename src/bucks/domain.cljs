@@ -323,7 +323,8 @@
         contribution (contribution-amount transactions)
         growth (growth-amount daily-values)
         value (:value (last daily-values))
-        self-growth (- value contribution)]
+        self-growth (- value contribution)
+        self-growth-precentage (growth-percentage contribution value)]
     (-> details
         timestamped
         (update :include-in-net #(= yes %))
@@ -336,6 +337,7 @@
                :growth-month (growth-month daily-values)
                :contribution-growth-amount contribution
                :self-growth-amount self-growth
+               :self-growth-precentage self-growth-precentage
                :growth-amount growth
                :start-value (:value (first daily-values))
                :value (:value (last daily-values))))))
@@ -395,7 +397,8 @@
                 {:keys [value]} (last daily-values)
                 contribution (contribution-amount transactions)
                 growth (growth-amount daily-values)
-                self-growth (- value contribution)]
+                self-growth (- value contribution)
+                self-growth-precentage (growth-percentage contribution value)]
             [t {:asset-type t
                 :assets assets
                 :daily-values daily-values
@@ -405,6 +408,7 @@
                 :contribution-growth-amount contribution
                 :growth-amount growth
                 :self-growth-amount self-growth
+                :self-growth-precentage self-growth-precentage
                 :value value
                 :transactions transactions}])))
     (into {})))
