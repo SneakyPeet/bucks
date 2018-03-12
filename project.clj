@@ -26,7 +26,7 @@
   :aliases {"build" ["do"
                      "clean"
                      ["cljsbuild" "once" "min"]
-                     ["uberjar"]]}
+                     ]}
   :auto-clean false
 
 

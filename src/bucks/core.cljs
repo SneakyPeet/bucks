@@ -666,9 +666,13 @@
 
 (defmethod render-modal :help [state]
   [:div.has-text-light
-   [:p "To view your bucks upload a csv file with your data. The file can have lines as described below.
+   [:p "To view your bucks, upload a csv file with your data. The file should have lines as described below.
         Each Item should be on a new line. Scroll down to see an example file.
         All data is local to your computer and is NOT uploaded anywhere."]
+   [:br]
+   [:ul {:style {:list-style "disc" :margin-left "20px"}}
+    [:li "You file can be delimited using either a pipe ( | ), comma ( , ) or semicolon ( ; )"]
+    [:li.has-text-danger "Names cannot start with a number"]]
    [:hr]
    (map-indexed
     (fn [i [key values description]]
