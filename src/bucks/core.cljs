@@ -103,6 +103,14 @@
   (draw-chart js/google.visualization.ColumnChart id data opt))
 
 
+(defn draw-bar-chart [id data opt]
+  (draw-chart js/google.visualization.BarChart id data opt))
+
+
+(defn draw-combo-chart [id data opt]
+  (draw-chart js/google.visualization.ComboChart id data opt))
+
+
 (def alternate-chart-colors ["#ffde56" "#3372dd"])
 
 
@@ -559,6 +567,63 @@
     lifetimes)])
 
 
+(defn tfsa-lifetime [tfsa-tracking]
+  (chart
+   "tfsa-tracking"
+   (fn [id]
+     (let [headings ["person" "value"]
+           limit    ["Limit" 500000]
+           data (->> tfsa-tracking
+                     vals
+                     (map (juxt :owner :lifetime)))]
+       (draw-bar-chart
+        id
+        (->> data
+             (into [headings limit])
+             data-table)
+        {:title "TFSA LIFETIME LIMITS"})))))
+
+
+(defn tfsa-yearly [tfsa-tracking]
+  (chart
+   "tfsa-yearly"
+   (fn [id]
+     (let [owners (->> tfsa-tracking
+                       keys)
+           headings (->> owners
+                         (into ["Year" "Limit"]))
+           years  (->> tfsa-tracking
+                       vals
+                       (map #(-> % :yearly keys))
+                       (reduce into)
+                       sort
+                       set)
+           yearly-data (->> years
+                            (map
+                             (fn [y]
+                               (->> owners
+                                    (map (fn [o]
+                                           (get-in tfsa-tracking [o :yearly y])))
+                                    (into [(js/Date. y 0 1) 33000])))))]
+       (prn (->> yearly-data
+                 (into [headings])))
+       (draw-combo-chart
+        id
+        (->> yearly-data
+             (into [headings])
+             data-table)
+        {:title "TFSA YEARLY CONTRIBUTIONS"
+         :seriesType "bars"
+         :series {0 {:type "line"}}
+         :hAxis {:gridlines {:color "none"}
+                 :textStyle {:color chart-base-color}
+                 :ticks (map #(js/Date. % 0 1) years)
+                 :format "y"}
+         :vAxis {:baseline 0
+                 :gridlines {:color chart-base-color}
+                 :textStyle {:color chart-base-color}}})))))
+
+
 (defn seperator [text]
   [:div.level.is-marginless
    [:div.level-item
@@ -577,6 +642,8 @@
      (col 3 (asset-group-pie (:asset-groups data)))
      (col 6 (growth-chart (:daily-wi data)))
      (col 6 (salaries-chart (:salaries data)))
+     (col 6 (tfsa-yearly (:tfsa-tracking data)))
+     (col 6 (tfsa-lifetime (:tfsa-tracking data)))
      (seperator "Money Lifetime")
      [:div.column.is-12 (money-lifetimes (:money-lifetimes data))]
      (seperator "Years")

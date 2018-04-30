@@ -64,6 +64,8 @@
 
 (s/def :d/asset-growth number?)
 
+(s/def :d/owner string?)
+
 
 ;;;; DATA TYPES
 
@@ -75,9 +77,9 @@
     [:d/name :d/year :d/month :d/day :d/value]
     "A Salary Change. Name is the Name Of Employer. Value is your Monthly Salary Before Tax."]
    ["open-asset"
-    [:d/name :d/year :d/month :d/day :d/asset-type :d/value :d/units :d/include-in-net]
+    [:d/name :d/year :d/month :d/day :d/asset-type :d/value :d/units :d/include-in-net :d/owner]
     (str "A new Asset. Name is the name of the asset. Asset-type should be one of the following " (string/join ", " asset-types)
-         ". Requires opening value and units (leave as 0 if not relevant). Include in Net indicates if an asset should be included in the wealth index and total asset value calculations (can be y or n).")]
+         ". Requires opening value and units (leave as 0 if not relevant). Include in Net indicates if an asset should be included in the wealth index and total asset value calculations (can be y or n). Owner is the person the asset belongs to")]
    ["close-asset"
     [:d/name :d/year :d/month :d/day :d/value]
     "Close an existing asset. Name is the name of the asset. Value is the value of the asset before it closed"]
@@ -534,6 +536,32 @@
        (map #(money-lifetime current-values %))))
 
 
+(defn tfsa-tracking [assets]
+  (->> assets
+       vals
+       (filter #(= (:asset-type %) "TFSA"))
+       (group-by :owner)
+       (map (fn [[owner assets]]
+              (let [transactions (->> assets
+                                      (map :transactions)
+                                      (reduce into))
+                    total (->> transactions
+                               (map :amount)
+                               (reduce +))
+                    yearly (->> transactions
+                                (map (fn [{:keys [cljs-date amount]}]
+                                       [(-> cljs-date (time/minus (time/months 2)) time/year)
+                                        amount]))
+                                (group-by first)
+                                (map (fn [[year v]]
+                                       [year (->> v (map last) (reduce +))]))
+                                (into {}))]
+                [owner {:owner owner
+                        :lifetime total
+                        :yearly yearly}])))
+       (into {})))
+
+
 (defn all-your-bucks [coll]
   (let [year-goals (year-goals coll)
         birthday (birthday coll)
@@ -551,6 +579,7 @@
         years (years net-assets daily-salaries daily-wi year-goals)
         wi-goals (wi-goals coll birthday daily-wi)
         money-lifetimes (money-lifetimes current-values coll)
+        tfsa-tracking (tfsa-tracking assets)
         ]
     {:birthday birthday
      :salaries salaries
@@ -560,4 +589,5 @@
      :years years
      :wi-goals wi-goals
      :money-lifetimes money-lifetimes
-     :current-values current-values}))
+     :current-values current-values
+     :tfsa-tracking tfsa-tracking}))
