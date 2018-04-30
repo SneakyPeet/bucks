@@ -738,7 +738,7 @@
         All data is local to your computer and is NOT uploaded anywhere."]
    [:br]
    [:ul {:style {:list-style "disc" :margin-left "20px"}}
-    [:li "You file can be delimited using either a pipe ( | ), comma ( , ) or semicolon ( ; )"]
+    [:li "Your file can be delimited using either a pipe ( | ), comma ( , ) or semicolon ( ; )"]
     [:li.has-text-danger "Names cannot start with a number"]]
    [:hr]
    (map-indexed
