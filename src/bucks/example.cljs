@@ -26,6 +26,16 @@
    ["salary" "Company 1" last-year 6 1 27000]
    ["salary" "Company 1" this-year 1 1 36000]])
 
+(def income-expense
+  [["income-expense" last-year 6 20000 18000]
+   ["income-expense" last-year 7 20000 19000]
+   ["income-expense" last-year 8 20000 21000]
+   ["income-expense" last-year 9 20000 18000]
+   ["income-expense" last-year 10 20000 18500]
+   ["income-expense" last-year 11 20000 17200]
+   ["income-expense" last-year 12 20000 18000]
+   ["income-expense" this-year 1 30000 22000]])
+
 (def asset1
   [["open-asset" "Asset 1" (dec last-year) 12 30 "RA" 20000 10 "y" "Carmen"]
    ["transaction" "Asset 1" last-year 3 1 1000 19800 1]
@@ -64,7 +74,8 @@
         asset1
         asset2
         closed-asset
-        ignore-asset]
+        ignore-asset
+        income-expense]
        (reduce into)
        (map #(->> % (map str) (str/join "|")))
        (str/join "\n")))

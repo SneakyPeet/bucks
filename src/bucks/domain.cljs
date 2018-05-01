@@ -66,6 +66,10 @@
 
 (s/def :d/owner string?)
 
+(s/def :d/income pos?)
+
+(s/def :d/expense pos?)
+
 
 ;;;; DATA TYPES
 
@@ -76,6 +80,9 @@
    ["salary"
     [:d/name :d/year :d/month :d/day :d/value]
     "A Salary Change. Name is the Name Of Employer. Value is your Monthly Salary Before Tax."]
+   ["income-expense"
+    [:d/year :d/month :d/income :d/expense]
+    "Spend less than you earn. Save the Difference. Income is the money you have left after tax (Basically the money you budget). Expense is the money you spend. This will be used to calculate retirement things so keep that in mind when capturing expense."]
    ["open-asset"
     [:d/name :d/year :d/month :d/day :d/asset-type :d/value :d/units :d/include-in-net :d/owner]
     (str "A new Asset. Name is the name of the asset. Asset-type should be one of the following " (string/join ", " asset-types)
@@ -273,6 +280,15 @@
 (defn salaries [coll]
   (->> coll
        (filter (type-of-f? :salary))
+       (map timestamped)
+       (sort-by :timestamp)))
+
+
+(defn income-expense [coll]
+  (->> coll
+       (filter (type-of-f? :income-expense))
+       (map (fn [{:keys [year month] :as m}]
+              (assoc m :day (time/day (time/last-day-of-the-month (time/date-time year month))))))
        (map timestamped)
        (sort-by :timestamp)))
 
@@ -566,6 +582,7 @@
   (let [year-goals (year-goals coll)
         birthday (birthday coll)
         salaries (salaries coll)
+        income-expense (income-expense coll)
         daily-salaries (daily-values :value salaries)
         assets (assets coll)
         net-assets (->> assets
@@ -583,6 +600,7 @@
         ]
     {:birthday birthday
      :salaries salaries
+     :income-expense income-expense
      :assets assets
      :daily-wi daily-wi
      :asset-groups asset-groups

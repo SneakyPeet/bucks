@@ -479,17 +479,19 @@
   (str (format-num value) " " name " "  (.toLocaleDateString date "en-ZA")))
 
 
-(defn salaries-chart [salaries]
-  (chart
-   "salaries-chart"
-   (fn [id]
-     (draw-area-chart
-      id
-      (->> salaries
-           (map (juxt :date :value salaries-tooltip))
-           (into [["month" "value" {:type "string" :role "tooltip"}]])
-           data-table)
-      {:title "SALARIES"}))))
+(defn salaries-chart [{:keys [income-expense salaries]}]
+  (let [nothing (constantly nil)]
+    (chart
+     "salaries-chart"
+     (fn [id]
+       (draw-area-chart
+        id
+        (->> salaries
+             (map (juxt :date :value nothing nothing salaries-tooltip))
+             (into (map (juxt :date nothing :expense :income nothing) income-expense))
+             (into [["month" "salary" "expense" "income" {:type "string" :role "tooltip"}]])
+             data-table)
+        {:title "SALARIES"})))))
 
 
 (defn years [years]
@@ -605,8 +607,6 @@
                                     (map (fn [o]
                                            (get-in tfsa-tracking [o :yearly y])))
                                     (into [(js/Date. y 0 1) 33000])))))]
-       (prn (->> yearly-data
-                 (into [headings])))
        (draw-combo-chart
         id
         (->> yearly-data
@@ -641,7 +641,7 @@
      (col 7 (wi-chart (:daily-wi data) (:wi-goals data)))
      (col 3 (asset-group-pie (:asset-groups data)))
      (col 6 (growth-chart (:daily-wi data)))
-     (col 6 (salaries-chart (:salaries data)))
+     (col 6 (salaries-chart data))
      (col 6 (tfsa-yearly (:tfsa-tracking data)))
      (col 6 (tfsa-lifetime (:tfsa-tracking data)))
      (seperator "Money Lifetime")
