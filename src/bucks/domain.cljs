@@ -370,6 +370,18 @@
        (into {})))
 
 
+(defn assets-per-person [assets]
+  (->> assets
+       vals
+       (group-by :owner)
+       (map (fn [[owner assets]]
+              {:owner owner
+               :value (->> assets
+                           (map :value)
+                           (reduce +))}))
+       ))
+
+
 (defn daily-asset-values [assets]
   (->> assets
        (map :daily-values)
@@ -593,6 +605,7 @@
                            (assoc :growth-year (growth-year daily-asset-values)
                                   :growth-month (growth-month daily-asset-values)))
         asset-groups (asset-groups net-assets)
+        assets-per-person (assets-per-person net-assets)
         years (years net-assets daily-salaries daily-wi year-goals)
         wi-goals (wi-goals coll birthday daily-wi)
         money-lifetimes (money-lifetimes current-values coll)
@@ -602,6 +615,7 @@
      :salaries salaries
      :income-expense income-expense
      :assets assets
+     :assets-per-person assets-per-person
      :daily-wi daily-wi
      :asset-groups asset-groups
      :years years

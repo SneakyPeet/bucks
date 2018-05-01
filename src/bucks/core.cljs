@@ -536,6 +536,21 @@
       {:title "ASSET DISTRIBUTION"}))))
 
 
+(defn assets-per-person-pie [assets-per-person]
+  (chart
+   "assets-per-person"
+   (fn [id]
+     (draw-pie-chart
+      id
+      (->> assets-per-person
+           (sort-by :value)
+           reverse
+           (map (juxt :owner :value))
+           (into [["owner" "%"]])
+           data-table)
+      {:title "ASSETS PER PERSON"}))))
+
+
 (defn assets [assets]
   [:div.columns.is-multiline.is-centered
    (->> assets
@@ -638,8 +653,9 @@
      (col 3 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
      (col 3 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
      (col 2 (wealth-guage wi))
-     (col 7 (wi-chart (:daily-wi data) (:wi-goals data)))
-     (col 3 (asset-group-pie (:asset-groups data)))
+     (col 6 (wi-chart (:daily-wi data) (:wi-goals data)))
+     (col 2 (asset-group-pie (:asset-groups data)))
+     (col 2 (assets-per-person-pie (:assets-per-person data)))
      (col 6 (growth-chart (:daily-wi data)))
      (col 6 (salaries-chart data))
      (col 6 (tfsa-yearly (:tfsa-tracking data)))
