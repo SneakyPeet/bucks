@@ -480,16 +480,22 @@
 
 
 (defn salaries-chart [{:keys [income-expense salaries]}]
-  (let [nothing (constantly nil)]
+  (let [nothing (constantly nil)
+        headers (if (empty? income-expense)
+                  [["month" "salary" {:type "string" :role "tooltip"}]]
+                  [["month" "salary" "expense" "income" {:type "string" :role "tooltip"}]])
+        salaries (if (empty? income-expense)
+                   (map (juxt :date :value salaries-tooltip) salaries)
+                   (map (juxt :date :value nothing nothing salaries-tooltip) salaries))
+        income-expense (map (juxt :date nothing :expense :income nothing) income-expense)]
     (chart
      "salaries-chart"
      (fn [id]
        (draw-area-chart
         id
         (->> salaries
-             (map (juxt :date :value nothing nothing salaries-tooltip))
-             (into (map (juxt :date nothing :expense :income nothing) income-expense))
-             (into [["month" "salary" "expense" "income" {:type "string" :role "tooltip"}]])
+             (into income-expense)
+             (into headers)
              data-table)
         {:title "SALARIES"})))))
 
