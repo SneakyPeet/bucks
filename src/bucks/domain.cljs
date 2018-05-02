@@ -7,7 +7,7 @@
 
 ;;;; DEFAULTS
 
-(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "CFD" "ETF" "UnitTrust" "Other"})
+(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "CFD" "ETF" "UnitTrust" "Other" "Emergency Fund"})
 (def yes "y")
 (def no "n")
 
@@ -412,6 +412,11 @@
                      :wi (wi asset-value value age)
                      )))))))
 
+(defn income-expense-wi [{:keys [asset-value age]} income-expense]
+  (let [{:keys [income expense]} (last income-expense)]
+    {:income-wi (wi asset-value income age)
+     :expense-wi (wi asset-value expense age)}))
+
 
 (defn asset-groups [assets]
   (->> assets
@@ -590,6 +595,35 @@
        (into {})))
 
 
+(defn money-health [{:keys [asset-value]} asset-groups income-expense]
+  (let [multiplier 300
+        em-fund-value (get-in asset-groups ["Emergency Fund" :value] 0)
+        income-expense (take-last 6 income-expense)
+        ie-count       (-> (count income-expense)
+                           (min 6)
+                           (max 1))
+        total-expense (->> income-expense
+                         (map :expense)
+                         (reduce +))
+        avg-expense   (/ total-expense ie-count)
+        em-ratio  (if (> avg-expense 0)
+                    (/ em-fund-value avg-expense)
+                    0)
+        four-percent-rule-total (* avg-expense multiplier)
+        percent-of-four-completed (if (> four-percent-rule-total 0)
+                                    (* 100 (/ asset-value four-percent-rule-total))
+                                    0)
+        four-percent-rule-over-time (->> income-expense
+                                         (map (fn [{:keys [expense] :as m}]
+                                                (assoc m :four-percent-rule-total
+                                                        (* expense multiplier)))))]
+    {:avg-monthly-expense (js/Math.round avg-expense)
+     :emergency-fund-ratio em-ratio
+     :four-percent-rule-total four-percent-rule-total
+     :percent-of-four-completed percent-of-four-completed
+     :four-percent-rule-over-time four-percent-rule-over-time}))
+
+
 (defn all-your-bucks [coll]
   (let [year-goals (year-goals coll)
         birthday (birthday coll)
@@ -601,15 +635,19 @@
                         (filter (fn [[_ v]] (:include-in-net v))))
         daily-asset-values (daily-asset-values (vals net-assets))
         daily-wi (daily-wi birthday daily-salaries daily-asset-values)
-        current-values (-> (last daily-wi)
+        current-wi (last daily-wi)
+        income-expense-wi (income-expense-wi current-wi income-expense)
+        current-values (-> current-wi
                            (assoc :growth-year (growth-year daily-asset-values)
-                                  :growth-month (growth-month daily-asset-values)))
+                                  :growth-month (growth-month daily-asset-values))
+                           (merge income-expense-wi))
         asset-groups (asset-groups net-assets)
         assets-per-person (assets-per-person net-assets)
         years (years net-assets daily-salaries daily-wi year-goals)
         wi-goals (wi-goals coll birthday daily-wi)
         money-lifetimes (money-lifetimes current-values coll)
         tfsa-tracking (tfsa-tracking assets)
+        money-health (money-health current-wi asset-groups income-expense)
         ]
     {:birthday birthday
      :salaries salaries
@@ -622,4 +660,5 @@
      :wi-goals wi-goals
      :money-lifetimes money-lifetimes
      :current-values current-values
-     :tfsa-tracking tfsa-tracking}))
+     :tfsa-tracking tfsa-tracking
+     :money-health money-health}))

@@ -400,14 +400,18 @@
 ;;;; MAIN PAGE
 
 
-(defn wealth-guage [wi]
+(defn wealth-guage [{:keys [wi income-wi expense-wi]}]
   (chart
    "wi-guage"
    (fn [id]
      (draw-guages
       id
-      (data-table [["Level" "Value"]
-                   ["Wealth Index" wi]])
+      (->> [["Level" "Value"]
+            ["Salary WI" wi]
+            (when income-wi ["Income WI" income-wi])
+            (when expense-wi ["Expense WI" expense-wi])]
+           (keep identity)
+           data-table)
       {:height 200 :majorTicks (range 0 6 1) :max 5 :min 0
        :greenColor "#00d1b2" :greenFrom 3 :greenTo 5
        :yellowColor "#ffde56" :yellowFrom 1.5 :yellowTo 3
@@ -493,11 +497,24 @@
      (fn [id]
        (draw-area-chart
         id
-        (->> salaries
+        (->> (concat salaries [(-> salaries last (assoc 0 (js/Date.)))])
              (into income-expense)
              (into headers)
              data-table)
         {:title "SALARIES"})))))
+
+
+(defn four-percent-rule-chart [{:keys [four-percent-rule-over-time]}]
+  (chart
+   "four-percent-rule-chart"
+   (fn [id]
+     (draw-area-chart
+      id
+      (->> four-percent-rule-over-time
+           (map (juxt :date :four-percent-rule-total))
+           (into [["month" "value"]])
+           data-table)
+      {:title "4% RULE REQUIRED OVER TIME"}))))
 
 
 (defn years [years]
@@ -646,9 +663,10 @@
 
 
 (defn seperator [text]
-  [:div.level.is-marginless
-   [:div.level-item
-    [:p.heading.is-marginless text]]])
+  [:div.column.is-12
+   [:div.level.is-marginless
+    [:div.level-item
+     [:p.heading.is-marginless text]]]])
 
 
 (defmethod render-page :main [{:keys [data modal]}]
@@ -658,12 +676,24 @@
      (col 3 (info-box "NET" (format-num asset-value)))
      (col 3 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
      (col 3 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
-     (col 2 (wealth-guage wi))
-     (col 6 (wi-chart (:daily-wi data) (:wi-goals data)))
-     (col 2 (asset-group-pie (:asset-groups data)))
-     (col 2 (assets-per-person-pie (:assets-per-person data)))
+     (col 4 (wealth-guage (:current-values data)))
+     (col 8 (wi-chart (:daily-wi data) (:wi-goals data)))
      (col 6 (growth-chart (:daily-wi data)))
      (col 6 (salaries-chart data))
+     (seperator "Money Health")
+     (col 2 (asset-group-pie (:asset-groups data)))
+     (col 2 (assets-per-person-pie (:assets-per-person data)))
+     (col 4 [:div
+             (info-box "AVG MONTHLY EXPENSE (last 6 entries)" (format-num (get-in data [:money-health :avg-monthly-expense])))
+             [:br]
+             (info-box "MONTHS COVERED BY EMERGENCY FUND"
+                       (format-num (get-in data [:money-health :emergency-fund-ratio])))
+             [:br]
+             (info-box "4% RULE GOAL" (format-num (get-in data [:money-health :four-percent-rule-total])))
+             [:br]
+             (info-box "% of 4% REACHED" (format-% (get-in data [:money-health :percent-of-four-completed])))])
+     (col 4 (four-percent-rule-chart (:money-health data)))
+     (seperator "TAX FREE")
      (col 6 (tfsa-yearly (:tfsa-tracking data)))
      (col 6 (tfsa-lifetime (:tfsa-tracking data)))
      (seperator "Money Lifetime")

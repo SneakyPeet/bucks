@@ -44,6 +44,14 @@
    ["transaction" "Asset 1" last-year 12 1 2000 25700 2]
    ["transaction" "Asset 1" this-year 1 1 -1500 24300 -1.5]])
 
+(def emergency-fund
+  [["open-asset" "Emergency" (dec last-year) 12 30 "Emergency Fund" 20000 10 "y" "Carmen"]
+   ["transaction" "Emergency" last-year 3 1 1000 19800 1]
+   ["transaction" "Emergency" last-year 6 1 2000 23700 2]
+   ["transaction" "Emergency" last-year 8 1 -1000 23300 -1]
+   ["transaction" "Emergency" last-year 12 1 2000 25700 2]
+   ["transaction" "Emergency" this-year 1 1 -1500 24300 -1.5]])
+
 (def asset2
   [["open-asset" "Asset 2" last-year 5 15 "TFSA" 25000 0 "y" "Pieter"]
    ["transaction" "Asset 2" last-year 5 18 2000 27700 0]
@@ -72,6 +80,7 @@
         money-lifetime
         salaries
         asset1
+        emergency-fund
         asset2
         closed-asset
         ignore-asset
