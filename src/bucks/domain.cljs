@@ -70,6 +70,8 @@
 
 (s/def :d/expense pos?)
 
+(s/def :d/is-tfsa #(contains? #{yes no} %))
+
 
 ;;;; DATA TYPES
 
@@ -84,9 +86,9 @@
     [:d/year :d/month :d/income :d/expense]
     "Spend less than you earn. Save the Difference. Income is the money you have left after tax (Basically the money you budget). Expense is the money you spend. This will be used to calculate retirement things so keep that in mind when capturing expense."]
    ["open-asset"
-    [:d/name :d/year :d/month :d/day :d/asset-type :d/value :d/units :d/include-in-net :d/owner]
+    [:d/name :d/year :d/month :d/day :d/asset-type :d/value :d/units :d/include-in-net :d/owner :d/is-tfsa]
     (str "A new Asset. Name is the name of the asset. Asset-type should be one of the following " (string/join ", " asset-types)
-         ". Requires opening value and units (leave as 0 if not relevant). Include in Net indicates if an asset should be included in the wealth index and total asset value calculations (can be y or n). Owner is the person the asset belongs to")]
+         ". Requires opening value and units (leave as 0 if not relevant). Include in Net indicates if an asset should be included in the wealth index and total asset value calculations (can be y or n). Owner is the person the asset belongs to. Use 'is-tfsa' to see an asset in the tax free saving section (can be y or n)")]
    ["close-asset"
     [:d/name :d/year :d/month :d/day :d/value]
     "Close an existing asset. Name is the name of the asset. Value is the value of the asset before it closed"]
@@ -371,6 +373,7 @@
     (-> details
         timestamped
         (update :include-in-net #(= yes %))
+        (update :is-tfsa #(= yes %))
         (assoc :closed? closed?
                :values values
                :transactions transactions
@@ -597,7 +600,7 @@
 (defn tfsa-tracking [assets]
   (->> assets
        vals
-       (filter #(= (:asset-type %) "TFSA"))
+       (filter #(true? (:is-tfsa %)))
        (group-by :owner)
        (map (fn [[owner assets]]
               (let [transactions (->> assets

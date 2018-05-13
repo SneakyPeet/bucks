@@ -39,7 +39,7 @@
    ["income-expense" this-year 1 30000 22000]])
 
 (def asset1
-  [["open-asset" "Asset 1" (dec last-year) 12 30 "RA" 20000 10 "y" "Carmen"]
+  [["open-asset" "Asset 1" (dec last-year) 12 30 "RA" 20000 10 "y" "Carmen" "n"]
    ["transaction" "Asset 1" last-year 3 1 1000 19800 1]
    ["transaction" "Asset 1" last-year 6 1 2000 23700 2]
    ["transaction" "Asset 1" last-year 8 1 -1000 23300 -1]
@@ -47,7 +47,7 @@
    ["transaction" "Asset 1" this-year 1 1 -1500 24300 -1.5]])
 
 (def emergency-fund
-  [["open-asset" "Emergency" (dec last-year) 12 30 "Emergency Fund" 20000 10 "y" "Carmen"]
+  [["open-asset" "Emergency" (dec last-year) 12 30 "Emergency Fund" 20000 10 "y" "Carmen" "n"]
    ["transaction" "Emergency" last-year 3 1 1000 19800 1]
    ["transaction" "Emergency" last-year 6 1 2000 23700 2]
    ["transaction" "Emergency" last-year 8 1 -1000 23300 -1]
@@ -55,7 +55,7 @@
    ["transaction" "Emergency" this-year 1 1 -1500 24300 -1.5]])
 
 (def asset2
-  [["open-asset" "Asset 2" last-year 5 15 "TFSA" 25000 0 "y" "Pieter"]
+  [["open-asset" "Asset 2" last-year 5 15 "TFSA" 25000 0 "y" "Pieter" "y"]
    ["transaction" "Asset 2" last-year 5 18 2000 27700 0]
    ["transaction" "Asset 2" last-year 5 25 2000 29900 0]
    ["value" "Asset 2" last-year 6 30 46000]
@@ -68,12 +68,12 @@
    ["value" "Asset 2" this-year 1 31 48800]])
 
 (def closed-asset
-  [["open-asset" "Closed Asset 1" last-year 2 2 "Crypto" 100000 1 "y" "Pieter"]
+  [["open-asset" "Closed Asset 1" last-year 2 2 "Crypto" 100000 1 "y" "Pieter" "n"]
    ["transaction" "Closed Asset 1" last-year 6 6 1000 120000 0.03]
    ["close-asset" "Closed Asset 1" last-year 9 9 130000]])
 
 (def ignore-asset
-  [["open-asset" "Ignored Asset 1" last-year 3 2 "Crypto" 200000 1 "n" "Carmen"]])
+  [["open-asset" "Ignored Asset 1" last-year 3 2 "Crypto" 200000 1 "n" "Carmen" "n"]])
 
 (def test-piped-csv
   (->> [dob
