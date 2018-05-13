@@ -78,7 +78,7 @@
     [:d/year :d/month :d/day]
     "Your date of birth. Used in the wealth index calculations."]
    ["salary"
-    [:d/name :d/year :d/month :d/day :d/value]
+    [:d/owner :d/name :d/year :d/month :d/day :d/value]
     "A Salary Change. Name is the Name Of Employer. Value is your Monthly Salary Before Tax."]
    ["income-expense"
     [:d/year :d/month :d/income :d/expense]
@@ -282,6 +282,31 @@
        (filter (type-of-f? :salary))
        (map timestamped)
        (sort-by :timestamp)))
+
+
+(defn combined-salaries [coll]
+  (let [salaries (salaries coll)]
+    (loop [salaries salaries
+           existing {}
+           result []]
+      (if (empty? salaries)
+        (sort-by :timestamp result)
+        (let [salary (first salaries)
+              existing (assoc existing (:owner salary) salary)
+              value (->> existing
+                         vals
+                         (map :value)
+                         (reduce +))
+              name (->> existing
+                        vals
+                        (map (fn [{:keys [name owner value]}] (str owner " - " name " - " value)))
+                        (string/join " | ")
+                        (str value " : "))
+              salary (assoc salary :name name :value value)]
+          (recur
+           (rest salaries)
+           existing
+           (conj result salary)))))))
 
 
 (defn income-expense [coll]
@@ -606,6 +631,11 @@
                          (map :expense)
                          (reduce +))
         avg-expense   (/ total-expense ie-count)
+        total-income (->> income-expense
+                          (map :income)
+                          (reduce +))
+        avg-income   (/ total-income ie-count)
+        available-to-save (max 0 (- avg-income avg-expense))
         em-ratio  (if (> avg-expense 0)
                     (/ em-fund-value avg-expense)
                     0)
@@ -616,8 +646,9 @@
         four-percent-rule-over-time (->> income-expense
                                          (map (fn [{:keys [expense] :as m}]
                                                 (assoc m :four-percent-rule-total
-                                                        (* expense multiplier)))))]
-    {:avg-monthly-expense (js/Math.round avg-expense)
+                                                       (* expense multiplier)))))]
+    {:avg-monthly-available-to-save available-to-save
+     :avg-monthly-expense (js/Math.round avg-expense)
      :emergency-fund-ratio em-ratio
      :four-percent-rule-total four-percent-rule-total
      :percent-of-four-completed percent-of-four-completed
@@ -627,7 +658,7 @@
 (defn all-your-bucks [coll]
   (let [year-goals (year-goals coll)
         birthday (birthday coll)
-        salaries (salaries coll)
+        salaries (combined-salaries coll)
         income-expense (income-expense coll)
         daily-salaries (daily-values :value salaries)
         assets (assets coll)

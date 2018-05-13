@@ -487,11 +487,12 @@
   (let [nothing (constantly nil)
         headers (if (empty? income-expense)
                   [["month" "salary" {:type "string" :role "tooltip"}]]
-                  [["month" "salary" "expense" "income" {:type "string" :role "tooltip"}]])
+                  [["month" "salary" {:type "string" :role "tooltip"} "expense" "income"]])
         salaries (if (empty? income-expense)
-                   (map (juxt :date :value salaries-tooltip) salaries)
-                   (map (juxt :date :value nothing nothing salaries-tooltip) salaries))
-        income-expense (map (juxt :date nothing :expense :income nothing) income-expense)]
+                   (map (juxt :date :value :name) salaries)
+                   (map (juxt :date :value :name nothing nothing) salaries))
+        income-expense (map (juxt :date nothing nothing :expense :income) income-expense)]
+    (prn salaries)
     (chart
      "salaries-chart"
      (fn [id]

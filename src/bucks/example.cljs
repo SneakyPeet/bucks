@@ -22,9 +22,11 @@
    ["year-goal" last-year 20]])
 
 (def salaries
-  [["salary" "Company 1" (dec last-year) 1 2 25000]
-   ["salary" "Company 1" last-year 6 1 27000]
-   ["salary" "Company 1" this-year 1 1 36000]])
+  [["salary" "Pieter" "Company 1" (dec last-year) 1 2 25000]
+   ["salary" "Pieter" "Company 1" last-year 6 1 27000]
+   ["salary" "Pieter" "Company 1" this-year 1 1 36000]
+   ["salary" "Carmen" "Company 2" last-year 5 5 11000]
+   ["salary" "Carmen" "Company 3" this-year 2 2 13000]])
 
 (def income-expense
   [["income-expense" last-year 6 20000 18000]
