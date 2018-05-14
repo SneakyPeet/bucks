@@ -843,7 +843,8 @@
     "1.5"
     ["Track TFSA seperately from asset types. To view a TFSA asset in the TFSA section set 'is-tfsa' to 'y'"
      "Allow Multiple Salaries"
-     "Added 'Actively Managed' asset type"]
+     "Added 'Actively Managed' asset type"
+     "Allow 'comment' rows"]
     ["'open-asset' requires an 'is-tfsa' field to be added to track TFSA's seperately. Can be 'y' or 'n'. Add to the end of the row"
      "'salaries' requires an 'owner' field. This is the first field after 'salaries'"])
    (history

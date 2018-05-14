@@ -86,7 +86,8 @@
         asset2
         closed-asset
         ignore-asset
-        income-expense]
+        income-expense
+        [["comment" "An example comment"]]]
        (reduce into)
        (map #(->> % (map str) (str/join "|")))
        (str/join "\n")))

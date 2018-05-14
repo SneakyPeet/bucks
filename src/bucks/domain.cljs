@@ -106,7 +106,10 @@
     "A growth percentage goal for a given year"]
    ["money-lifetime"
     [:d/inflation :d/percent-of-salary :d/asset-growth]
-    "Calculates the lifetime of your money given annual inflation and asset growth compounded monthly with monthly withdrawals of a percentage of your salary."]])
+    "Calculates the lifetime of your money given annual inflation and asset growth compounded monthly with monthly withdrawals of a percentage of your salary."]
+   ["comment"
+    []
+    "A row used for any kind of comment"]])
 
 
 (def data-types (->> data-types-config
