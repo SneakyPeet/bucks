@@ -7,7 +7,7 @@
 
 ;;;; DEFAULTS
 
-(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "CFD" "ETF" "UnitTrust" "Other" "Emergency Fund"})
+(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "CFD" "ETF" "UnitTrust" "Other" "Emergency Fund" "Actively Managed"})
 (def yes "y")
 (def no "n")
 
