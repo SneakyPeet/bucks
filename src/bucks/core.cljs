@@ -840,7 +840,7 @@
 (defmethod render-modal :history [state]
   [:div.has-text-light
    (history
-    "1.5"
+    "1.7"
     ["Track TFSA seperately from asset types. To view a TFSA asset in the TFSA section set 'is-tfsa' to 'y'"
      "Allow Multiple Salaries"
      "Added 'Actively Managed' asset type"
