@@ -815,6 +815,53 @@
     [:code example/test-piped-csv]]])
 
 
+(defn history
+  ([version features breaking-changes] (history version nil features breaking-changes))
+  ([version url features breaking-changes]
+   (let [style {:list-style "disc" :margin-left "20px"}
+         version-1 (if url version [version [:small " (current)"]])
+         features (->> features
+                       (map-indexed (fn [i f] [:li {:key i :style style} f]))
+                       (into [[:li.has-text-info "Features"]]))
+         breaking-changes (if (empty? breaking-changes)
+                            []
+                            (->> breaking-changes
+                                 (map-indexed (fn [i f] [:li {:key (str "e" i)  :style style} f]))
+                                 (into [[:li.has-text-danger "Breaking Changes"]])))]
+     [:div
+      [:h1.has-text-primary "V" version-1 (when url [:small [:a {:href url} " (view here)"]])]
+      [:ul
+       features
+       breaking-changes]
+      [:br]]
+     )))
+
+
+(defmethod render-modal :history [state]
+  [:div.has-text-light
+   (history
+    "1.5"
+    ["Track TFSA seperately from asset types. To view a TFSA asset in the TFSA section set 'is-tfsa' to 'y'"
+     "Allow Multiple Salaries"
+     "Added 'Actively Managed' asset type"]
+    ["'open-asset' requires an 'is-tfsa' field to be added to track TFSA's seperately. Can be 'y' or 'n'. Add to the end of the row"
+     "'salaries' requires an 'owner' field. This is the first field after 'salaries'"])
+   (history
+    "1.3"
+    "/bucks-v1.3"
+    ["Tax Free Savings Reporting"
+     "Monthly Income and Expense Tracking. Use the 'income-expense' row."
+     "Retirement Numbers based on the 4% rule. Requires monthly income and expense."
+     "'Emergency Fund' asset type. Used to calculate 'MONTHS COVERED BY EMERGENCY FUND'"
+     "Wealth Distribution by owne"]
+    ["'open-asset' requires an 'owner' field to be added to track TFSA's"])
+   (history
+    "1"
+    "/bucks-v1"
+    ["Initial Release"]
+    [])])
+
+
 (rum/defc app < rum/reactive [state]
   (let [current-state (rum/react state)]
     [:div
@@ -824,7 +871,9 @@
         [:a.navbar-item {:on-click #(show-modal :help nil)}
          [:span.icon [:i.fa.fa-question-circle]]]
         [:a.navbar-item {:on-click #(show-modal :upload nil)}
-         [:span.icon [:i.fa.fa-upload]]]]]]
+         [:span.icon [:i.fa.fa-upload]]]
+        [:a.navbar-item {:on-click #(show-modal :history nil)}
+         [:span.icon [:i.fa.fa-history]]]]]]
      (when-not (= :hidden (get-in current-state [:modal :key]))
        [:div.modal.is-active
         [:div.modal-background {:on-click hide-modal}]
