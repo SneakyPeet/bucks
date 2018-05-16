@@ -575,6 +575,53 @@
       {:title "ASSETS PER PERSON"}))))
 
 
+(defn asset-area-chart [type assets]
+  (let [assets  (->> (vals assets)
+                     (sort-by :value)
+                     reverse)
+        total   (count assets)
+        base-row (->> (range (inc total)) (map (constantly nil)) vec)
+        all-days (->> assets
+                      (map :daily-values)
+                      (reduce into)
+                      (map :date)
+                      set
+                      sort)
+        asset-mapping (->> assets
+                           (map-indexed
+                            (fn [i {:keys [daily-values]}]
+                              [i
+                               (->> daily-values
+                                    (map
+                                     (fn [{:keys [date value]}]
+                                       [date value]))
+                                    (into {}))]))
+                           (into {}))
+        rows (->> all-days
+                    (map
+                     (fn [d]
+                       (->> assets
+                            (map-indexed
+                             (fn [i _]
+                               (get-in asset-mapping [i d] 0)))
+                            (#(conj % d))))))
+        headers (->> assets
+                     (map :asset-type)
+                     (#(conj % "Date")))]
+    (chart
+     (str "asset-area-chart" type)
+     (fn [id]
+       (draw-area-chart
+        id
+        (->> rows
+             (into [headers])
+             data-table)
+        {:title (str "ASSETS DISTRIBUTION (" type ")")
+         :isStacked type
+         :areaOpacity 0.9
+         :curveType "function"})))))
+
+
 (defn assets [assets]
   [:div.columns.is-multiline.is-centered
    (->> assets
@@ -694,6 +741,8 @@
              [:br]
              (info-box "% of 4% REACHED" (format-% (get-in data [:money-health :percent-of-four-completed])))])
      (col 4 (four-percent-rule-chart (:money-health data)))
+     (col 6 (asset-area-chart "absolute" (:asset-groups data)))
+     (col 6 (asset-area-chart "percent" (:asset-groups data)))
      (seperator "TAX FREE")
      (col 6 (tfsa-yearly (:tfsa-tracking data)))
      (col 6 (tfsa-lifetime (:tfsa-tracking data)))
@@ -757,8 +806,6 @@
            (->> result
                 (filter (comp not :valid?))
                 (map (juxt :i :error)))]
-       (prn (->> result
-                 (filter (comp not :valid?))))
        (if-not (empty? errors)
          [:div.content
           [:hr]
@@ -840,7 +887,16 @@
 (defmethod render-modal :history [state]
   [:div.has-text-light
    (history
+    "1.x"
+    ["Asset Type Distributions over time"
+     "Todo Calculate Savings Rate https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
+     "Todo Calculate RA Contributions"
+     "Todo Estimate Years To Retirement"
+     "Todo Hide 0 asset types"]
+    [])
+   (history
     "1.7"
+    "/bucks-v1.7"
     ["Track TFSA seperately from asset types. To view a TFSA asset in the TFSA section set 'is-tfsa' to 'y'"
      "Allow Multiple Salaries"
      "Added 'Actively Managed' asset type"
@@ -903,3 +959,5 @@
 
 (defn on-js-reload []
   (swap! *state update-in [:__figwheel_counter] inc))
+
+(. js/document (getElementById ""))
