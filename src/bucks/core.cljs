@@ -55,13 +55,15 @@
                               :axis "horizontal"
                               :keepInBounds true}})
 
+(defn legend [position] {:textStyle {:color chart-base-color}
+                         :position position})
+
 (defn draw-chart [Chart id data opt]
   (let [opt (merge
              {:animation {:startup true :duration 2000 :easing "out"}
               :colors ["#00d1b2" "#ff385f" "#ffde56" "#3372dd" "#EA7AF4" "#B43E8F" "#6200B3" "#3B0086"]
               :backgroundColor "none"
-              :legend {:textStyle {:color chart-base-color}
-                       :position "bottom"}
+              :legend (legend "bottom")
               :titleTextStyle {:color chart-base-color}
               :hAxis {:gridlines {:color "none"}
                       :textStyle {:color chart-base-color}}
@@ -96,7 +98,9 @@
 (defn draw-pie-chart [id data opt]
   (draw-chart js/google.visualization.PieChart
               id data
-              (merge {:pieHole 0.4} opt)))
+              (merge
+               {:pieHole 0.4
+                :legend (legend "right")} opt)))
 
 
 (defn draw-column-chart [id data opt]
@@ -710,11 +714,13 @@
                  :textStyle {:color chart-base-color}}})))))
 
 
-(defn seperator [text]
-  [:div.column.is-12
-   [:div.level.is-marginless
-    [:div.level-item
-     [:p.heading.is-marginless text]]]])
+(defn seperator
+  ([] [:div.column.is-12])
+  ([text]
+   [:div.column.is-12
+    [:div.level.is-marginless
+     [:div.level-item
+      [:p.heading.is-marginless text]]]]))
 
 
 (defmethod render-page :main [{:keys [data modal]}]
@@ -727,10 +733,11 @@
      (col 4 (wealth-guage (:current-values data)))
      (col 8 (wi-chart (:daily-wi data) (:wi-goals data)))
      (col 6 (growth-chart (:daily-wi data)))
-     (col 6 (salaries-chart data))
+     (col 3 (asset-group-pie (:asset-groups data)))
+     (col 3 (assets-per-person-pie (:assets-per-person data)))
+
      (seperator "Money Health")
-     (col 2 (asset-group-pie (:asset-groups data)))
-     (col 2 (assets-per-person-pie (:assets-per-person data)))
+     (col 4 (salaries-chart data))
      (col 4 [:div
              (info-box "AVG MONTHLY EXPENSE (last 6 entries)" (format-num (get-in data [:money-health :avg-monthly-expense])))
              [:br]
@@ -892,7 +899,8 @@
      "Todo Calculate Savings Rate https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
      "Todo Calculate RA Contributions"
      "Todo Estimate Years To Retirement"
-     "Todo Hide 0 asset types"]
+     "Todo Hide 0 asset types"
+     "Improve Pie Chart Legend"]
     [])
    (history
     "1.7"
