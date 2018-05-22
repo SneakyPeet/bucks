@@ -314,11 +314,28 @@
            (conj result salary)))))))
 
 
-(defn income-expense [coll]
+(defn monthly-transactions [assets]
+  (->> assets
+       vals
+       (map :transactions)
+       (reduce into)
+       (map #(assoc % :grouping [(:year %) (:month %)]))
+       (group-by :grouping)
+       (map (fn [[g t]]
+              [g (->> t (map :amount) (reduce +))]))
+       (into {})))
+
+
+(defn income-expense [monthly-transactions coll]
   (->> coll
        (filter (type-of-f? :income-expense))
-       (map (fn [{:keys [year month] :as m}]
-              (assoc m :day (time/day (time/last-day-of-the-month (time/date-time year month))))))
+       (map (fn [{:keys [year month income expense] :as m}]
+              (let [savings (get monthly-transactions [year month] 0)]
+                (assoc m
+                       :day (time/day (time/last-day-of-the-month (time/date-time year month)))
+                       :expected-saving-rate (->> (/ expense income) (- 1) (* 100))
+                       :recorded-saving-rate (-> savings (/ income) (* 100))
+                       :savings savings))))
        (map timestamped)
        (sort-by :timestamp)))
 
@@ -627,8 +644,52 @@
 
 
 (def lookback-in-months 12)
+(def assumed-return-after-inflation 5)
+(def assumed-safe-withdrawal-rate 4)
 
-(defn money-health [{:keys [asset-value]} asset-groups income-expense]
+(defn years-till-financially-independent
+  "Implements the spreadsheet found here
+  https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
+  ([existing-years-of-take-home-pay saving-rate]
+   (years-till-financially-independent
+    existing-years-of-take-home-pay assumed-return-after-inflation saving-rate assumed-safe-withdrawal-rate))
+  ([years-of-take-home-pay return-after-inflation saving-rate withdrawal-rate]
+   (let [return-after-inflation (/ return-after-inflation 100)
+         ;withdrawal-rate (/ withdrawal-rate 100)
+         saving-rate (/ saving-rate 100)]
+     (loop
+         [year 0
+          investment-gains 0
+          years-of-take-home-income years-of-take-home-pay
+          stash-relative-to-spending 0
+          withdraw-spend-percent 0]
+       (if (or (>= year 1000) (>= withdraw-spend-percent 100))
+         year
+         (let [year' (inc year)
+               investment-gains'
+               (+
+                (-
+                 (*
+                  years-of-take-home-income
+                  (+
+                   1
+                   return-after-inflation))
+                 years-of-take-home-income)
+                (*
+                 (/
+                  saving-rate
+                  2)
+                 return-after-inflation))
+               years-of-take-home-income' (+ (+ years-of-take-home-income investment-gains') saving-rate)
+               stash-relative-to-spending' (/ years-of-take-home-income' (- 1 saving-rate))
+               withdraw-spend-percent' (* stash-relative-to-spending' withdrawal-rate)
+               ]
+           (recur
+            year' investment-gains' years-of-take-home-income'
+            stash-relative-to-spending' withdraw-spend-percent')))))))
+
+
+(defn money-health [{:keys [asset-value age]} asset-groups income-expense]
   (let [multiplier 300
         em-fund-value (get-in asset-groups ["Emergency Fund" :value] 0)
         income-expense (take-last lookback-in-months income-expense)
@@ -654,20 +715,28 @@
         four-percent-rule-over-time (->> income-expense
                                          (map (fn [{:keys [expense] :as m}]
                                                 (assoc m :four-percent-rule-total
-                                                       (* expense multiplier)))))]
+                                                       (* expense multiplier)))))
+        total-saving-rate (->> income-expense (map :recorded-saving-rate) (reduce +))
+        avg-saving-rate (/ total-saving-rate ie-count)
+        current-take-home-pay (-> income-expense last :income)
+        years-worth-of-take-home-pay (/ asset-value (* current-take-home-pay 12))
+        years-till-financially-independent (years-till-financially-independent years-worth-of-take-home-pay avg-saving-rate)
+        age-when-financially-independent (+ age years-till-financially-independent)]
     {:avg-monthly-available-to-save available-to-save
      :avg-monthly-expense (js/Math.round avg-expense)
      :emergency-fund-ratio em-ratio
      :four-percent-rule-total four-percent-rule-total
      :percent-of-four-completed percent-of-four-completed
-     :four-percent-rule-over-time four-percent-rule-over-time}))
+     :four-percent-rule-over-time four-percent-rule-over-time
+     :avg-saving-rate avg-saving-rate
+     :years-till-financially-independent years-till-financially-independent
+     :age-when-financially-independent age-when-financially-independent}))
 
 
 (defn all-your-bucks [coll]
   (let [year-goals (year-goals coll)
         birthday (birthday coll)
         salaries (combined-salaries coll)
-        income-expense (income-expense coll)
         daily-salaries (daily-values :value salaries)
         assets (assets coll)
         net-assets (->> assets
@@ -675,6 +744,8 @@
         daily-asset-values (daily-asset-values (vals net-assets))
         daily-wi (daily-wi birthday daily-salaries daily-asset-values)
         current-wi (last daily-wi)
+        monthly-transactions (monthly-transactions net-assets)
+        income-expense (income-expense monthly-transactions coll)
         income-expense-wi (income-expense-wi current-wi income-expense)
         current-values (-> current-wi
                            (assoc :growth-year (growth-year daily-asset-values)
@@ -700,4 +771,5 @@
      :money-lifetimes money-lifetimes
      :current-values current-values
      :tfsa-tracking tfsa-tracking
-     :money-health money-health}))
+     :money-health money-health
+     :monthly-transactions monthly-transactions}))

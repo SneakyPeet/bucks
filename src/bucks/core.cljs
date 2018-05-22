@@ -484,7 +484,7 @@
            (map (juxt :date :asset-value))
            (into [["month" "value"]])
            data-table)
-      {:title "GROWTH"}))))
+      {:title "NET WORTH"}))))
 
 
 (defn salaries-tooltip [{:keys [date value name]}]
@@ -495,12 +495,11 @@
   (let [nothing (constantly nil)
         headers (if (empty? income-expense)
                   [["month" "salary" {:type "string" :role "tooltip"}]]
-                  [["month" "salary" {:type "string" :role "tooltip"} "expense" "income"]])
+                  [["month" "salary" {:type "string" :role "tooltip"} "expense" "income" "savings"]])
         salaries (if (empty? income-expense)
                    (map (juxt :date :value :name) salaries)
-                   (map (juxt :date :value :name nothing nothing) salaries))
-        income-expense (map (juxt :date nothing nothing :expense :income) income-expense)]
-    (prn salaries)
+                   (map (juxt :date :value :name nothing nothing nothing) salaries))
+        income-expense (map (juxt :date nothing nothing :expense :income :savings) income-expense)]
     (chart
      "salaries-chart"
      (fn [id]
@@ -510,7 +509,7 @@
              (into income-expense)
              (into headers)
              data-table)
-        {:title "SALARIES"})))))
+        {:title "MONEY"})))))
 
 
 (defn four-percent-rule-chart [{:keys [four-percent-rule-over-time]}]
@@ -718,8 +717,34 @@
                  :textStyle {:color chart-base-color}}})))))
 
 
+(defn four-percent-rule [data]
+  [:div
+   (info-box "MONTHS COVERED BY EMERGENCY FUND"
+             (format-num (get-in data [:money-health :emergency-fund-ratio])))
+   [:br]
+   (info-box "4% RULE GOAL" (format-num (get-in data [:money-health :four-percent-rule-total])))
+   [:br]
+   (info-box "% of 4% REACHED" (format-% (get-in data [:money-health :percent-of-four-completed])))])
+
+
+(defn time-till-independence [data]
+  (let [last-entry-text (str "(last " domain/lookback-in-months " entries)")]
+    [:div
+     (info-box (str "AVG MONTHLY EXPENSE " last-entry-text) (format-num (get-in data [:money-health :avg-monthly-expense])))
+     [:br]
+     (info-box (str "AVG SAVING RATE " last-entry-text) (format-% (get-in data [:money-health :avg-saving-rate] 0)))
+     [:br]
+
+     (info-box "YEARS TILL INDEPENDENCE"
+               (str (format-num (get-in data [:money-health :years-till-financially-independent]))
+                    " (age " (format-num (get-in data [:money-health :age-when-financially-independent])) ")"))
+     [:br]
+     [:div.has-text-centered.has-text-grey
+      [:small  "assumes " domain/assumed-return-after-inflation "% return after inflation"]]]))
+
+
 (defn seperator
-  ([] [:div.column.is-12])
+  ([] [:br])
   ([text]
    [:div.column.is-12
     [:div.level.is-marginless
@@ -735,23 +760,19 @@
      (col 3 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
      (col 3 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
      (col 4 (wealth-guage (:current-values data)))
-     (col 8 (wi-chart (:daily-wi data) (:wi-goals data)))
-     (col 6 (growth-chart (:daily-wi data)))
-     (col 3 (asset-group-pie (:asset-groups data)))
-     (col 3 (assets-per-person-pie (:assets-per-person data)))
-
+     (col 4 (wi-chart (:daily-wi data) (:wi-goals data)))
+     (col 4 (growth-chart (:daily-wi data)))
      (seperator "Money Health")
-     (col 4 (salaries-chart data))
-     (col 4 [:div
-             (info-box (str "AVG MONTHLY EXPENSE (last " domain/lookback-in-months " entries)") (format-num (get-in data [:money-health :avg-monthly-expense])))
-             [:br]
-             (info-box "MONTHS COVERED BY EMERGENCY FUND"
-                       (format-num (get-in data [:money-health :emergency-fund-ratio])))
-             [:br]
-             (info-box "4% RULE GOAL" (format-num (get-in data [:money-health :four-percent-rule-total])))
-             [:br]
-             (info-box "% of 4% REACHED" (format-% (get-in data [:money-health :percent-of-four-completed])))])
-     (col 4 (four-percent-rule-chart (:money-health data)))
+
+     (col 8 (salaries-chart data))
+     (col 4 (time-till-independence data))
+
+     (col 8 (four-percent-rule-chart (:money-health data)))
+     (col 4 (four-percent-rule data))
+     (seperator "Assets")
+     (col 4 (asset-group-pie (:asset-groups data)))
+     (col 4 (assets-per-person-pie (:assets-per-person data)))
+     (seperator)
      (col 6 (asset-area-chart "absolute" (:asset-groups data)))
      (col 6 (asset-area-chart "percent" (:asset-groups data)))
      (seperator "TAX FREE")
@@ -899,11 +920,15 @@
   [:div.has-text-light
    (history
     "1.x"
-    ["Asset Type Distributions over time"
-     "Todo Calculate Savings Rate https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
-     "Todo Calculate RA Contributions"
-     "Todo Estimate Years To Retirement"
+    ["Todo Calculate RA Contributions"
      "Todo Hide 0 asset types"
+     "Todo Saving rate over time"
+     "Todo Expected vs recorded savings rate (perhaps part of the above)"
+     "Todo monthly transactions bar chart"
+     "Todo Retirement goals chart"
+     "Asset Type Distributions over time"
+     "Calculate Savings Rate https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
+     "Calculate Estimate Years To Retirement"
      "Improve Pie Chart Legend"
      "Improve Wealth Index Goal Chart"
      "Change Lookback from 6 Months to 12 Months"]
