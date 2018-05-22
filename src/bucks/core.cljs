@@ -58,6 +58,12 @@
 (defn legend [position] {:textStyle {:color chart-base-color}
                          :position position})
 
+(def h-axis {:gridlines {:color "none"}
+             :textStyle {:color chart-base-color}})
+
+(def v-axis {:gridlines {:color chart-base-color}
+             :textStyle {:color chart-base-color}})
+
 (defn draw-chart [Chart id data opt]
   (let [opt (merge
              {:animation {:startup true :duration 2000 :easing "out"}
@@ -65,10 +71,8 @@
               :backgroundColor "none"
               :legend (legend "bottom")
               :titleTextStyle {:color chart-base-color}
-              :hAxis {:gridlines {:color "none"}
-                      :textStyle {:color chart-base-color}}
-              :vAxis {:gridlines {:color chart-base-color}
-                      :textStyle {:color chart-base-color}}
+              :hAxis h-axis
+              :vAxis v-axis
               :height 250}
              opt)
         chart (Chart. (.getElementById js/document id))]
@@ -466,8 +470,8 @@
         {:title "WEALTH INDEX"
          :explorer {:axis nil
                     :actions ["dragToZoom", "rightClickToReset"]
-                    :keepInBounds true}})))))
-
+                    :keepInBounds true}
+         :hAxis (assoc-in h-axis [:viewWindow :max] (js/Date.))})))))
 
 
 (defn growth-chart [daily-wi]
@@ -739,7 +743,7 @@
      (seperator "Money Health")
      (col 4 (salaries-chart data))
      (col 4 [:div
-             (info-box "AVG MONTHLY EXPENSE (last 6 entries)" (format-num (get-in data [:money-health :avg-monthly-expense])))
+             (info-box (str "AVG MONTHLY EXPENSE (last " domain/lookback-in-months " entries)") (format-num (get-in data [:money-health :avg-monthly-expense])))
              [:br]
              (info-box "MONTHS COVERED BY EMERGENCY FUND"
                        (format-num (get-in data [:money-health :emergency-fund-ratio])))
@@ -900,7 +904,9 @@
      "Todo Calculate RA Contributions"
      "Todo Estimate Years To Retirement"
      "Todo Hide 0 asset types"
-     "Improve Pie Chart Legend"]
+     "Improve Pie Chart Legend"
+     "Improve Wealth Index Goal Chart"
+     "Change Lookback from 6 Months to 12 Months"]
     [])
    (history
     "1.7"

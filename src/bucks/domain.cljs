@@ -626,12 +626,14 @@
        (into {})))
 
 
+(def lookback-in-months 12)
+
 (defn money-health [{:keys [asset-value]} asset-groups income-expense]
   (let [multiplier 300
         em-fund-value (get-in asset-groups ["Emergency Fund" :value] 0)
-        income-expense (take-last 6 income-expense)
+        income-expense (take-last lookback-in-months income-expense)
         ie-count       (-> (count income-expense)
-                           (min 6)
+                           (min lookback-in-months)
                            (max 1))
         total-expense (->> income-expense
                          (map :expense)
