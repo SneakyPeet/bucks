@@ -762,6 +762,23 @@
          :areaOpacity 0
          })))))
 
+
+(defn retire-years-fixing-saving-rate [data]
+  [:table.table.is-narrow.is-fullwidth
+   [:tbody
+    [:tr [:td.has-text-centered "Saving Rate"] [:td.has-text-centered "Years Till Independent"]]
+    (map-indexed
+     (fn [i {:keys [years saving-rate current]}]
+       [:tr {:key i :class (cond current "has-text-info"
+                                 (<= years 10) "has-text-primary"
+                                 (<= years 20) "has-text-warning"
+                                 (> years 20) "has-text-danger"
+                                 :else "")}
+        [:td.has-text-centered (format-% saving-rate)]
+        [:td.has-text-centered years]])
+     data)]])
+
+
 (defn seperator
   ([] [:br])
   ([text]
@@ -785,9 +802,9 @@
 
      (col 4 (salaries-chart data))
      (col 4 (savings-rate-chart (:income-expense data)))
+     (col 4 (four-percent-rule-chart (:money-health data)))
      (col 4 (time-till-independence data))
-
-     (col 8 (four-percent-rule-chart (:money-health data)))
+     (col 4 (retire-years-fixing-saving-rate (get-in data [:money-health :retire-years-fixing-saving-rate])))
      (col 4 (four-percent-rule data))
      (seperator "Assets")
      (col 4 (asset-group-pie (:asset-groups data)))
@@ -944,10 +961,10 @@
      "Todo Hide 0 asset types"
      "Todo monthly transactions bar chart"
      "Todo Retirement goals chart"
-     "Saving rate over time"
      "Asset Type Distributions over time"
-     "Calculate Savings Rate https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
-     "Calculate Estimate Years To Retirement"
+     "Calculate AVG Savings Rate"
+     "Expected and Actual Savings Rate over time"
+     "Calculate Estimate Years To Retirement https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
      "Improve Pie Chart Legend"
      "Improve Wealth Index Goal Chart"
      "Change Lookback from 6 Months to 12 Months"]

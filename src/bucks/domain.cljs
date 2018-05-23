@@ -719,8 +719,20 @@
         total-saving-rate (->> income-expense (map :recorded-saving-rate) (reduce +))
         avg-saving-rate (/ total-saving-rate ie-count)
         current-take-home-pay (-> income-expense last :income)
-        years-till-financially-independent (years-till-financially-independent asset-value current-take-home-pay avg-saving-rate)
-        age-when-financially-independent (+ age years-till-financially-independent)]
+        years-till-financially-independent' (years-till-financially-independent asset-value current-take-home-pay avg-saving-rate)
+        age-when-financially-independent (+ age years-till-financially-independent')
+        retire-years-fixing-saving-rate (->> [10 20 30 40 50 60]
+                                             (map #(hash-map
+                                                    :saving-rate %
+                                                    :years (years-till-financially-independent
+                                                            asset-value
+                                                            current-take-home-pay
+                                                            %)))
+                                             (into [{:saving-rate avg-saving-rate
+                                                     :years years-till-financially-independent'
+                                                     :current true}])
+                                             (sort-by :saving-rate)
+                                             reverse)]
     {:avg-monthly-available-to-save available-to-save
      :avg-monthly-expense (js/Math.round avg-expense)
      :emergency-fund-ratio em-ratio
@@ -728,8 +740,9 @@
      :percent-of-four-completed percent-of-four-completed
      :four-percent-rule-over-time four-percent-rule-over-time
      :avg-saving-rate avg-saving-rate
-     :years-till-financially-independent years-till-financially-independent
-     :age-when-financially-independent age-when-financially-independent}))
+     :years-till-financially-independent years-till-financially-independent'
+     :age-when-financially-independent age-when-financially-independent
+     :retire-years-fixing-saving-rate retire-years-fixing-saving-rate}))
 
 
 (defn all-your-bucks [coll]
