@@ -36,15 +36,16 @@
    ["income-expense" last-year 10 20000 18500]
    ["income-expense" last-year 11 20000 17200]
    ["income-expense" last-year 12 20000 18000]
-   ["income-expense" this-year 1 30000 22000]])
+   ["income-expense" this-year 1 30000 22000]
+   ["income-expense" this-year 5 30000 20000]])
 
 (def asset1
   [["open-asset" "Asset 1" (dec last-year) 12 30 "RA" 20000 10 "y" "Carmen" "n"]
    ["transaction" "Asset 1" last-year 3 1 1000 19800 1]
-   ["transaction" "Asset 1" last-year 6 1 2000 23700 2]
-   ["transaction" "Asset 1" last-year 8 1 -1000 23300 -1]
-   ["transaction" "Asset 1" last-year 12 1 2000 25700 2]
-   ["transaction" "Asset 1" this-year 1 1 -1500 24300 -1.5]])
+   ["transaction" "Asset 1" last-year 6 1 -1000 21700 2]
+   ["transaction" "Asset 1" last-year 8 1 6000 28300 -1]
+   ["transaction" "Asset 1" last-year 12 1 6000 35700 2]
+   ["transaction" "Asset 1" this-year 1 1 -1500 30300 -1.5]])
 
 (def emergency-fund
   [["open-asset" "Emergency" (dec last-year) 12 30 "Emergency Fund" 20000 10 "y" "Carmen" "n"]
@@ -69,8 +70,8 @@
 
 (def closed-asset
   [["open-asset" "Closed Asset 1" last-year 2 2 "Crypto" 100000 1 "y" "Pieter" "n"]
-   ["transaction" "Closed Asset 1" last-year 6 6 1000 120000 0.03]
-   ["close-asset" "Closed Asset 1" last-year 9 9 130000]])
+   ["transaction" "Closed Asset 1" last-year 3 3 1000 120000 0.03]
+   ["close-asset" "Closed Asset 1" last-year 4 4 130000]])
 
 (def ignore-asset
   [["open-asset" "Ignored Asset 1" last-year 3 2 "Crypto" 200000 1 "n" "Carmen" "n"]])

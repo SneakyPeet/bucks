@@ -650,12 +650,12 @@
 (defn years-till-financially-independent
   "Implements the spreadsheet found here
   https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
-  ([existing-years-of-take-home-pay saving-rate]
+  ([net-worth take-home-pay saving-rate]
    (years-till-financially-independent
-    existing-years-of-take-home-pay assumed-return-after-inflation saving-rate assumed-safe-withdrawal-rate))
-  ([years-of-take-home-pay return-after-inflation saving-rate withdrawal-rate]
-   (let [return-after-inflation (/ return-after-inflation 100)
-         ;withdrawal-rate (/ withdrawal-rate 100)
+    net-worth take-home-pay assumed-return-after-inflation saving-rate assumed-safe-withdrawal-rate))
+  ([net-worth take-home-pay return-after-inflation saving-rate withdrawal-rate]
+   (let [years-of-take-home-pay (/ net-worth (* take-home-pay 12))
+         return-after-inflation (/ return-after-inflation 100)
          saving-rate (/ saving-rate 100)]
      (loop
          [year 0
@@ -719,8 +719,7 @@
         total-saving-rate (->> income-expense (map :recorded-saving-rate) (reduce +))
         avg-saving-rate (/ total-saving-rate ie-count)
         current-take-home-pay (-> income-expense last :income)
-        years-worth-of-take-home-pay (/ asset-value (* current-take-home-pay 12))
-        years-till-financially-independent (years-till-financially-independent years-worth-of-take-home-pay avg-saving-rate)
+        years-till-financially-independent (years-till-financially-independent asset-value current-take-home-pay avg-saving-rate)
         age-when-financially-independent (+ age years-till-financially-independent)]
     {:avg-monthly-available-to-save available-to-save
      :avg-monthly-expense (js/Math.round avg-expense)

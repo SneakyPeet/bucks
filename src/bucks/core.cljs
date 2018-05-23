@@ -740,8 +740,27 @@
                     " (age " (format-num (get-in data [:money-health :age-when-financially-independent])) ")"))
      [:br]
      [:div.has-text-centered.has-text-grey
-      [:small  "assumes " domain/assumed-return-after-inflation "% return after inflation"]]]))
+      [:small
+       "assumes " domain/assumed-return-after-inflation
+       "% return after inflation and " domain/assumed-safe-withdrawal-rate "% withdrawal rate"]]]))
 
+
+(defn savings-rate-chart [income-expense]
+  (let [rows (->> income-expense
+                  (map (juxt :date :recorded-saving-rate :expected-saving-rate )))
+        headers ["Date" "Actual Recorded In Assets" "Expected Based On Expense"]]
+    (chart
+     (str "savings-rate-chart" type)
+     (fn [id]
+       (draw-area-chart
+        id
+        (->> rows
+             (into [headers])
+             data-table)
+        {:title "SAVING RATE %"
+         :isStacked type
+         :areaOpacity 0
+         })))))
 
 (defn seperator
   ([] [:br])
@@ -764,7 +783,8 @@
      (col 4 (growth-chart (:daily-wi data)))
      (seperator "Money Health")
 
-     (col 8 (salaries-chart data))
+     (col 4 (salaries-chart data))
+     (col 4 (savings-rate-chart (:income-expense data)))
      (col 4 (time-till-independence data))
 
      (col 8 (four-percent-rule-chart (:money-health data)))
@@ -922,10 +942,9 @@
     "1.x"
     ["Todo Calculate RA Contributions"
      "Todo Hide 0 asset types"
-     "Todo Saving rate over time"
-     "Todo Expected vs recorded savings rate (perhaps part of the above)"
      "Todo monthly transactions bar chart"
      "Todo Retirement goals chart"
+     "Saving rate over time"
      "Asset Type Distributions over time"
      "Calculate Savings Rate https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
      "Calculate Estimate Years To Retirement"
