@@ -726,6 +726,8 @@
 
 (defn four-percent-rule [data]
   [:div
+   (info-box "CURRENT NET WORTH" (format-num (get-in data [:current-values :asset-value])))
+   [:br]
    (info-box "4% RULE GOAL" (format-num (get-in data [:money-health :four-percent-rule-total])))
    [:br]
    (info-box "% of 4% REACHED" (format-% (get-in data [:money-health :percent-of-four-completed])))])
@@ -846,6 +848,7 @@
      (col 6 (asset-area-chart "absolute" (:asset-groups data)))
      (col 6 (asset-area-chart "percent" (:asset-groups data)))
      (seperator "TAX FREE")
+     (note "TFSA withdrawals are currently treated as transfers between tfsa accounts. Thus withdrawals that are not transfers will not reflect correctly.")
      (col 6 (tfsa-yearly (:tfsa-tracking data)))
      (col 6 (tfsa-lifetime (:tfsa-tracking data)))
      (seperator "Money Lifetime")
@@ -992,16 +995,20 @@
     "1.x"
     ["Todo Calculate RA Contributions"
      "Todo monthly transactions bar chart"
-     "Todo Retirement goals chart"
-     "Asset Type Distributions over time"
-     "Calculate AVG Savings Rate"
-     "Expected and Actual Savings Rate over time"
+     "Todo Retirement goals chart"]
+    [])
+   (history
+    "1.16"
+    "/bucks-v1.16"
+    ["Added Asset Type Distributions over time graphs"
+     "Calculate Average Savings Rate"
+     "Graph Expected and Actual Savings Rate over time"
      "Calculate Estimate Years To Retirement https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
      "Show Estimate Years To retirement for different savings rates"
-     "Years to Independence over time"
+     "Graph Years to Independence over time with goal line"
      "Improve Pie Chart Legend"
      "Improve Wealth Index Goal Chart"
-     "Change Lookback from 6 Months to 12 Months"]
+     "Change Lookback window from 6 Months to 12 Months"]
     [])
    (history
     "1.7"

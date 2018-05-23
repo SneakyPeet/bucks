@@ -1,0 +1,51 @@
+/* some style */
+
+html {
+  background-color: #1d1e1e;
+}
+
+.box {
+  height: 100%;
+  background-color: #303030;
+}
+
+.asset-button {
+  cursor: pointer;
+}
+
+.asset-button {
+  border: solid 1px #303030;
+}
+
+.asset-button .title {
+  color: #cecece;
+}
+
+.asset-button:hover {
+  border: solid #00d2b2 1px;
+  border-radius: 5px;
+}
+
+.table {
+  background-color: transparent;
+  color: #cecece;
+}
+
+.table thead th {
+  color: #cecece;
+}
+
+.level {
+  color:  #cecece;
+}
+
+#wi-guage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.space {
+  margin: 20px 0;
+}
