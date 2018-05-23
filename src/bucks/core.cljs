@@ -4,7 +4,9 @@
             [bucks.parse :as parse]
             [rum.core :as rum]
             [cljs-time.format :as time.format]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [cljs-time.core :as time]
+            [cljs-time.coerce :as time.coerce]))
 
 (enable-console-print!)
 
@@ -136,6 +138,11 @@
 (defn color-num [n] (cond (= 0 n) "has-text-light"
                           (> n 0) "has-text-primary"
                           :else "has-text-danger"))
+
+
+(defn note [& args]
+  [:div.has-text-centered.has-text-grey
+   [:small args]])
 
 
 (defn info-box [t info & [class]]
@@ -719,30 +726,25 @@
 
 (defn four-percent-rule [data]
   [:div
-   (info-box "MONTHS COVERED BY EMERGENCY FUND"
-             (format-num (get-in data [:money-health :emergency-fund-ratio])))
-   [:br]
    (info-box "4% RULE GOAL" (format-num (get-in data [:money-health :four-percent-rule-total])))
    [:br]
    (info-box "% of 4% REACHED" (format-% (get-in data [:money-health :percent-of-four-completed])))])
 
 
 (defn time-till-independence [data]
-  (let [last-entry-text (str "(last " domain/lookback-in-months " entries)")]
-    [:div
-     (info-box (str "AVG MONTHLY EXPENSE " last-entry-text) (format-num (get-in data [:money-health :avg-monthly-expense])))
-     [:br]
-     (info-box (str "AVG SAVING RATE " last-entry-text) (format-% (get-in data [:money-health :avg-saving-rate] 0)))
-     [:br]
+  [:div
+   (info-box "AVG MONTHLY EXPENSE " (format-num (get-in data [:money-health :avg-monthly-expense])))
+   [:br]
+   (info-box "AVG SAVING RATE " (format-% (get-in data [:money-health :avg-saving-rate] 0)))
+   [:br]
 
-     (info-box "YEARS TILL INDEPENDENCE"
-               (str (format-num (get-in data [:money-health :years-till-financially-independent]))
-                    " (age " (format-num (get-in data [:money-health :age-when-financially-independent])) ")"))
-     [:br]
-     [:div.has-text-centered.has-text-grey
-      [:small
-       "assumes " domain/assumed-return-after-inflation
-       "% return after inflation and " domain/assumed-safe-withdrawal-rate "% withdrawal rate"]]]))
+   (info-box "YEARS TILL INDEPENDENCE"
+             (str (format-num (get-in data [:money-health :years-till-financially-independent]))
+                  " (age " (format-num (get-in data [:money-health :age-when-financially-independent])) ")"))
+   [:br]
+   (note "previous " domain/lookback-in-months " periods averaged")
+   (note "assumes " domain/assumed-return-after-inflation "% return after inflation and "
+         domain/assumed-safe-withdrawal-rate "% withdrawal rate")])
 
 
 (defn savings-rate-chart [income-expense]
@@ -766,7 +768,7 @@
 (defn retire-years-fixing-saving-rate [data]
   [:table.table.is-narrow.is-fullwidth
    [:tbody
-    [:tr [:td.has-text-centered "Saving Rate"] [:td.has-text-centered "Years Till Independent"]]
+    [:tr [:td.has-text-centered "Saving Rate"] [:td.has-text-centered "Years Left"]]
     (map-indexed
      (fn [i {:keys [years saving-rate current]}]
        [:tr {:key i :class (cond current "has-text-info"
@@ -777,6 +779,32 @@
         [:td.has-text-centered (format-% saving-rate)]
         [:td.has-text-centered years]])
      data)]])
+
+
+(defn independence-years-tracking-chart [income-expense]
+  (let [{:keys [date timestamp years-to-independence]} (first income-expense)
+        end-date (time.coerce/to-date (time/plus (time.coerce/from-long timestamp)
+                                                 (time/years years-to-independence)))
+        rows (->> income-expense
+                  (map (juxt :date :years-to-independence (constantly nil)))
+                  (into [[date nil years-to-independence]
+                         [end-date nil 0]]))
+
+        headers ["Date" "Years" "Start Trajectory"]]
+    [:div
+     (chart
+      (str "independence-years-tracking-chart" type)
+      (fn [id]
+        (draw-area-chart
+         id
+         (->> rows
+              (into [headers])
+              data-table)
+         {:title "YEARS TO INDEPENDENCE"
+          :isStacked type
+          :areaOpacity 0
+          })))
+     (note "uses an avg window of " domain/lookback-in-months " periods around the entries to compensate for outliers")]))
 
 
 (defn seperator
@@ -791,21 +819,26 @@
 (defmethod render-page :main [{:keys [data modal]}]
   (let [{:keys [wi asset-value growth-month growth-year]} (:current-values data)]
     [:div.columns.is-multiline.is-centered
-     (col 3 (info-box "WEALTH INDEX" (format-num wi) (color-wi-num wi)))
-     (col 3 (info-box "NET" (format-num asset-value)))
-     (col 3 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
-     (col 3 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
+     (col 2 (info-box "WEALTH INDEX" (format-num wi) (color-wi-num wi)))
+     (col 2 (info-box "NET" (format-num asset-value)))
+     (col 2 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
+     (col 2 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
+     (col 2 (info-box "EM FUND MONTHS" (format-num (get-in data [:money-health :emergency-fund-ratio]))))
      (col 4 (wealth-guage (:current-values data)))
      (col 4 (wi-chart (:daily-wi data) (:wi-goals data)))
      (col 4 (growth-chart (:daily-wi data)))
      (seperator "Money Health")
 
-     (col 4 (salaries-chart data))
-     (col 4 (savings-rate-chart (:income-expense data)))
-     (col 4 (four-percent-rule-chart (:money-health data)))
-     (col 4 (time-till-independence data))
-     (col 4 (retire-years-fixing-saving-rate (get-in data [:money-health :retire-years-fixing-saving-rate])))
-     (col 4 (four-percent-rule data))
+     (col 6 (salaries-chart data))
+     (col 6 (savings-rate-chart (:income-expense data)))
+
+     (col 3 (time-till-independence data))
+     (col 6 (independence-years-tracking-chart (:independence-years-tracking data)))
+     (col 3 (retire-years-fixing-saving-rate (get-in data [:money-health :retire-years-fixing-saving-rate])))
+
+     (col 3 (four-percent-rule data))
+     (col 6 (four-percent-rule-chart (:money-health data)))
+
      (seperator "Assets")
      (col 4 (asset-group-pie (:asset-groups data)))
      (col 4 (assets-per-person-pie (:assets-per-person data)))
@@ -958,13 +991,14 @@
    (history
     "1.x"
     ["Todo Calculate RA Contributions"
-     "Todo Hide 0 asset types"
      "Todo monthly transactions bar chart"
      "Todo Retirement goals chart"
      "Asset Type Distributions over time"
      "Calculate AVG Savings Rate"
      "Expected and Actual Savings Rate over time"
      "Calculate Estimate Years To Retirement https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/"
+     "Show Estimate Years To retirement for different savings rates"
+     "Years to Independence over time"
      "Improve Pie Chart Legend"
      "Improve Wealth Index Goal Chart"
      "Change Lookback from 6 Months to 12 Months"]

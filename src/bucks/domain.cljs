@@ -745,6 +745,38 @@
      :retire-years-fixing-saving-rate retire-years-fixing-saving-rate}))
 
 
+(defn independence-years-tracking [income-expense daily-wi]
+  (let [monthly-net-worth
+        (->> daily-wi
+             (group-by (fn [{:keys [date] :as wi}]
+                         [(.getFullYear date) (inc (.getMonth date))]))
+             (map
+              (fn [[d v]]
+                [d (->> v
+                        (sort-by :timestamp)
+                        last
+                        :asset-value)]))
+             (into {}))
+        income-expense-years-to-independent
+        (let [look-window (/ lookback-in-months 2)]
+          (loop [given income-expense
+                 result []]
+            (if (empty? given)
+              (->> result (sort-by :timestamp))
+              (let [{:keys [income year month] :as month-given} (first given)
+                    forward-window (take look-window given)
+                    backward-window (take look-window result)
+                    given-window (concat forward-window backward-window)
+                    avg-savings-rate (/ (->> given-window (map :recorded-saving-rate) (reduce +))
+                                        (count given-window))
+                    net-worth (get monthly-net-worth [year month] 0)]
+                (recur
+                 (rest given)
+                 (conj result (assoc month-given :years-to-independence
+                                     (years-till-financially-independent net-worth income avg-savings-rate))))))))]
+    income-expense-years-to-independent))
+
+
 (defn all-your-bucks [coll]
   (let [year-goals (year-goals coll)
         birthday (birthday coll)
@@ -770,6 +802,7 @@
         money-lifetimes (money-lifetimes current-values coll)
         tfsa-tracking (tfsa-tracking assets)
         money-health (money-health current-wi asset-groups income-expense)
+        independence-years-tracking (independence-years-tracking income-expense daily-wi)
         ]
     {:birthday birthday
      :salaries salaries
@@ -784,4 +817,5 @@
      :current-values current-values
      :tfsa-tracking tfsa-tracking
      :money-health money-health
-     :monthly-transactions monthly-transactions}))
+     :monthly-transactions monthly-transactions
+     :independence-years-tracking independence-years-tracking}))
