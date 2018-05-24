@@ -850,7 +850,8 @@
      (col 6 (asset-area-chart "absolute" (:asset-groups data)))
      (col 6 (asset-area-chart "percent" (:asset-groups data)))
      (seperator "TAX FREE")
-     (note "TFSA withdrawals are currently treated as transfers between tfsa accounts. Thus withdrawals that are not transfers will not reflect correctly.")
+     (seperator
+      (note "TFSA withdrawals are currently treated as transfers between tfsa accounts. Thus withdrawals that are not transfers will not reflect correctly."))
      (col 6 (tfsa-yearly (:tfsa-tracking data)))
      (col 6 (tfsa-lifetime (:tfsa-tracking data)))
      (seperator "Money Lifetime")
