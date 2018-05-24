@@ -784,15 +784,17 @@
 
 
 (defn independence-years-tracking-chart [income-expense]
-  (let [{:keys [date timestamp years-to-independence]} (first income-expense)
-        end-date (time.coerce/to-date (time/plus (time.coerce/from-long timestamp)
-                                                 (time/years years-to-independence)))
+  (let [end-date #(time.coerce/to-date (time/plus (time.coerce/from-long (:timestamp %))
+                                                  (time/years (:years-to-independence %))))
+        first-entry (first income-expense)
+        last-entry (last income-expense)
         rows (->> income-expense
-                  (map (juxt :date :years-to-independence (constantly nil)))
-                  (into [[date nil years-to-independence]
-                         [end-date nil 0]]))
-
-        headers ["Date" "Years" "Start Trajectory"]]
+                  (map (juxt :date :years-to-independence (constantly nil) (constantly nil)))
+                  (into [[(:date first-entry) nil (:years-to-independence first-entry) nil]
+                         [(end-date first-entry) nil 0 nil]
+                         [(:date last-entry) nil nil (:years-to-independence last-entry)]
+                         [(end-date last-entry) nil nil 0]]))
+        headers ["Date" "Years" "Start Trajectory" "Actual Trajectory"]]
     [:div
      (chart
       (str "independence-years-tracking-chart" type)
@@ -995,7 +997,8 @@
     "1.x"
     ["Todo Calculate RA Contributions"
      "Todo monthly transactions bar chart"
-     "Todo Retirement goals chart"]
+     "Todo Retirement goals chart"
+     "Add actual independecy trend line"]
     [])
    (history
     "1.16"
