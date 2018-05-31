@@ -255,8 +255,8 @@
       {:title "CONTRIBUTIONS"
        :isStacked true
        :colors alternate-chart-colors
-       :trendlines {0 {:color (first alternate-chart-colors)}
-                    1 {:color (second alternate-chart-colors)}}
+       ;:trendlines {0 {:color (first alternate-chart-colors)}
+       ;             1 {:color (second alternate-chart-colors)}}
        :vAxis {:baselineColor "red"}}))))
 
 
@@ -443,7 +443,7 @@
    "wi-chart"
    (fn [id]
      (let [goal-headings (->> wi-goals (map :name))
-           headings (into ["month" "value"] goal-headings)
+           headings (into ["month" "actual"] goal-headings)
            get-values (->> (range (count wi-goals))
                            (map (constantly nothing))
                            (into [:date :wi])
@@ -801,8 +801,7 @@
       (fn [id]
         (draw-area-chart
          id
-         (->> rows
-              (into [headers])
+         (->> row
               data-table)
          {:title "YEARS TO INDEPENDENCE"
           :isStacked type
@@ -999,8 +998,12 @@
     ["Todo Calculate RA Contributions"
      "Todo monthly transactions bar chart"
      "Todo Retirement goals chart"
+     "Todo Fix year data"
      "Add actual independecy trend line"
-     "Fix Bug where todays values do not show"]
+     "Fix Bug where todays values do not show"
+     "Add Cash Asset Type"
+     "Remove yearly trend lines to reduce noise"
+     "Improve WI Labels"]
     [])
    (history
     "1.16"

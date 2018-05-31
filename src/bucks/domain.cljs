@@ -7,7 +7,7 @@
 
 ;;;; DEFAULTS
 
-(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "CFD" "ETF" "UnitTrust" "Other" "Emergency Fund" "Actively Managed"})
+(def asset-types #{"TFSA" "RA" "Crypto" "Savings" "Shares" "CFD" "ETF" "UnitTrust" "Other" "Emergency Fund" "Actively Managed" "Cash"})
 (def yes "y")
 (def no "n")
 
@@ -152,21 +152,23 @@
       (update :cljs-date time/last-day-of-the-month)
       cljs-timestamped))
 
+(defn end-of-day []
+  (-> (time/now)
+      time/at-midnight
+      (time/plus (time/days 1))))
 
 (defn wrap-age [{:keys [timestamp] :as birthday}]
   (assoc birthday
          :age (time/in-years (time/interval
                               (time.coerce/from-long timestamp)
-                              (time/now)))))
+                              (end-of-day)))))
 
 (defn daily-values
   "Calculates daily values from first item to now.
   Key is the map value containing the values"
   [k coll]
   (let [sorted-coll (sort-by :timestamp coll)
-        now         (-> (time/now)
-                        time/at-midnight
-                        (time/plus (time/days 1)))
+        now         (end-of-day)
         start       (first sorted-coll)]
     (if (empty? sorted-coll)
       []
@@ -206,7 +208,7 @@
 
 
 (defn growth-year [values]
-  (let [year (-> (time/now)
+  (let [year (-> (end-of-day)
                  time/year
                  (time/date-time)
                  (time/minus (time/millis 1)))]
@@ -348,7 +350,7 @@
          (map (fn [{:keys [wealth-index age] :as wi}]
                 (let [goal-age (time/plus cljs-date (time/years age))]
                   (assoc wi
-                         :name (str age "@" wealth-index)
+                         :name (str wealth-index "@" age)
                          :age age
                          :graph [start-wi
                                  (->> {:wi wealth-index
