@@ -159,13 +159,14 @@
                               (time.coerce/from-long timestamp)
                               (time/now)))))
 
-
 (defn daily-values
   "Calculates daily values from first item to now.
   Key is the map value containing the values"
   [k coll]
   (let [sorted-coll (sort-by :timestamp coll)
-        now         (time/now)
+        now         (-> (time/now)
+                        time/at-midnight
+                        (time/plus (time/days 1)))
         start       (first sorted-coll)]
     (if (empty? sorted-coll)
       []

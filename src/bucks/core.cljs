@@ -999,7 +999,8 @@
     ["Todo Calculate RA Contributions"
      "Todo monthly transactions bar chart"
      "Todo Retirement goals chart"
-     "Add actual independecy trend line"]
+     "Add actual independecy trend line"
+     "Fix Bug where todays values do not show"]
     [])
    (history
     "1.16"
