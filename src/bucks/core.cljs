@@ -801,7 +801,8 @@
       (fn [id]
         (draw-area-chart
          id
-         (->> row
+         (->> rows
+              (into [headers])
               data-table)
          {:title "YEARS TO INDEPENDENCE"
           :isStacked type
