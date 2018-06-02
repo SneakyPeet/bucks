@@ -200,6 +200,24 @@
       {:title "GROWTH DISTRIBUTION"
        :colors alternate-chart-colors}))))
 
+
+(defn performance-row [label value]
+  (if value
+    [:tr [:th.has-text-light label] [:td {:class (color-num value)} (format-% value )]]
+    [:tr [:td label] [:td "-"]]))
+
+
+(defn performance-table [{:keys [all-time month ytd years-1 years-3 years-5 years-10]}]
+  [:table.table.is-narrow.is-fullwidth
+   [:tbody
+    (performance-row "All Time" all-time)
+    (performance-row "Month" month)
+    (performance-row "YTD" ytd)
+    (performance-row "1 Year" years-1)
+    (performance-row "3 Years Annualised" years-3)
+    (performance-row "5 Years Annualised" years-5)
+    (performance-row "10 Years Annualised" years-10)]])
+
 ;;;; YEAR MODAL
 
 (defn year-growth-chart [year start goals daily-values]
@@ -395,7 +413,8 @@
   (let [asset (:data modal)
         {:keys [daily-values asset-type include-in-net growth-month name value
                 growth-all-time growth-amount closed? values self-growth-amount
-                growth-year units transactions start-value contribution-growth-amount self-growth-precentage]}
+                growth-year units transactions start-value contribution-growth-amount self-growth-precentage
+                performance]}
         (get-in data [:assets asset])]
     [:div
      [:h1.title.has-text-light.has-text-centered
@@ -409,6 +428,7 @@
       (color-level-item "YTD" format-% growth-year)
       (color-level-item "MTD" format-% growth-month)]
      (asset-chart daily-values transactions)
+     (performance-table performance)
      (growth-pie self-growth-amount contribution-growth-amount)
      (asset-history values transactions)]))
 
@@ -634,7 +654,6 @@
          :isStacked type
          :areaOpacity 0.9
          :curveType "function"})))))
-
 
 (defn assets [assets]
   [:div.columns.is-multiline.is-centered
@@ -1000,6 +1019,8 @@
      "Todo monthly transactions bar chart"
      "Todo Retirement goals chart"
      "Todo Fix year data"
+     "Todo add dividends"
+     "Todo unitize"
      "Add actual independecy trend line"
      "Fix Bug where todays values do not show"
      "Add Cash Asset Type"

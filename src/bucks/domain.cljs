@@ -274,6 +274,71 @@
          )))))
 
 
+(defn unitize [starting-units daily-values transactions]
+  (let [as-date (fn [{:keys [cljs-date]}] (time/at-midnight cljs-date))
+        as-date-timestamp (comp time.coerce/to-long as-date)
+        transaction-lookup (->> transactions
+                                (filter (fn [{:keys [data-type]}]
+                                          (or (nil? data-type) (= :transaction data-type))))
+                                (group-by as-date-timestamp)
+                                (map (fn [[t v]]
+                                       [t {:amount (->> v (map :amount) (reduce +))
+                                           :units (->> v (map :units) (reduce +))}]))
+                                (into {}))
+        starting-units (if (> starting-units 0) starting-units 1000)
+        starting-unit-price (/ (:value (first daily-values)) starting-units)
+        a (prn (->> transactions first :name))
+        unitized-values
+        (loop [result []
+               values daily-values
+               units starting-units
+               unit-price starting-unit-price]
+          (if (empty? values)
+            (sort-by :timestamp result)
+            (let [{:keys [value] :as current} (first values)
+                  units-to-add
+                  (if-let [transaction (get transaction-lookup (as-date-timestamp current))]
+                    (if (= (:units transaction) 0)
+                      (/ (:amount transaction) unit-price)
+                      (:units transaction))
+                    0)
+                  current-units (+ units units-to-add)
+                  current-unit-price (if (= 0 current-units) 0 (/ value current-units))
+                  entry (assoc current
+                               :units current-units
+                               :unit-price (if (= current-units units) current-unit-price unit-price))]
+              (when (or (not= current-units units) (not= current-unit-price unit-price))
+                (do
+                  (prn (str "u " current-units))
+                  (prn current-unit-price)))
+              (recur
+               (conj result entry)
+               (rest values)
+               current-units
+               current-unit-price))))
+
+        unit-price-lookup (->> unitized-values
+                               (map (juxt (comp time.coerce/to-long as-date) identity))
+                               (into {}))
+        today (last unitized-values)
+        todays-unit-price (:unit-price today)
+        todays-date (as-date today)
+        growth-since (fn [date current-price]
+                       (when-let [price (get-in unit-price-lookup [(time.coerce/to-long date) :unit-price])]
+                         (growth-percentage price current-price)))
+        growth-years-rolling (fn [y]
+                               (when-let [total
+                                          (growth-since (time/minus todays-date (time/years y))
+                                                        todays-unit-price)]
+                                 (/ total y)))]
+    {:all-time (growth-percentage (->> unitized-values first :unit-price) todays-unit-price)
+     :month (growth-since (time/first-day-of-the-month todays-date) todays-unit-price)
+     :ytd (growth-since (time/date-time (time/year todays-date)) todays-unit-price)
+     :years-1 (growth-years-rolling 1)
+     :years-3 (growth-years-rolling 3)
+     :years-5 (growth-years-rolling 5)
+     :years-10 (growth-years-rolling 10)}))
+
 ;;;;; QUERIES
 
 (defn birthday [coll]
@@ -409,7 +474,8 @@
                :self-growth-precentage self-growth-precentage
                :growth-amount growth
                :start-value (:value (first daily-values))
-               :value (:value (last daily-values))))))
+               :value (:value (last daily-values))
+               :performance (unitize (:units details) daily-values transactions)))))
 
 
 (defn assets [coll]
