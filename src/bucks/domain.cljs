@@ -343,7 +343,16 @@
                                            performance (:performance (growth-since start-date end-date))]
                                        (recur (dec x)
                                               start-date
-                                              (conj result performance)))))))]
+                                              (conj result performance)))))))
+        years (->> unitized-values
+                   (group-by #(time/year (:cljs-date %)))
+                   (map (fn [[year v]]
+                          (let [v (sort-by :timestamp v)
+                                start (first v)
+                                end (last v)]
+                            [year {:performance (growth-percentage (:unit-price start) (:unit-price end))
+                                   :overall (growth-percentage (:value start) (:value end))}])))
+                   (into {}))]
     {:all-time (growth-since (->> unitized-values first as-date) todays-date)
      :month (growth-since month todays-date)
      :last-month (growth-since (time/minus month (time/months 1)) month)
@@ -354,7 +363,8 @@
      :years-4 (growth-years-rolling 4)
      :years-5 (growth-years-rolling 5)
      :years-7 (growth-years-rolling 7)
-     :years-10 (growth-years-rolling 10)}))
+     :years-10 (growth-years-rolling 10)
+     :years years}))
 
 ;;;;; QUERIES
 

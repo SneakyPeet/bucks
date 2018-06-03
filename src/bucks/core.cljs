@@ -201,16 +201,18 @@
        :colors alternate-chart-colors}))))
 
 
-(defn performance-row [label {:keys [performance overall]}]
-  (if performance
-    [:tr
-     [:th.has-text-light label]
-     [:td {:class (color-num performance)} (format-% performance)]
-     (if overall [:td {:class (color-num overall)} (format-% overall)] [:td])]
-    [:tr [:td label] [:td "-"] [:td "-"]]))
+(defn performance-row
+  ([label value] (performance-row label value label))
+  ([label {:keys [performance overall]} key]
+   (if performance
+     [:tr {:key key}
+      [:th.has-text-light label]
+      [:td {:class (color-num performance)} (format-% performance)]
+      (if overall [:td {:class (color-num overall)} (format-% overall)] [:td])]
+     [:tr {:key key} [:td label] [:td "-"] [:td "-"]])))
 
 
-(defn performance-table [{:keys [all-time month last-month ytd
+(defn performance-table [{:keys [all-time month last-month ytd years
                                  years-1 years-2 years-3 years-4 years-5 years-7 years-10]}]
   [:table.table.is-narrow.is-fullwidth
    [:thead [:tr [:th] [:th "Performance"] [:th "Incl. Transactions"]]]
@@ -226,7 +228,13 @@
     (when years-4 (performance-row "4 Year" years-4))
     (when years-5 (performance-row "5 Year" years-5))
     (when years-7 (performance-row "7 Year" years-7))
-    (when years-10 (performance-row "10 Year" years-10))]])
+    (when years-10 (performance-row "10 Year" years-10))
+    [:tr [:td.has-text-centered {:col-span 3} "Per Year"]]
+    (->> years
+         (map-indexed
+          (fn [i [y v]]
+            (performance-row y v i)))
+         reverse)]])
 
 ;;;; YEAR MODAL
 
@@ -433,10 +441,6 @@
       (level-item "TYPE" identity asset-type)
       (level-item "VALUE" format-num value)
       (level-item "CONTRIBUTIONS" format-num contribution-growth-amount)]
-     [:div.level
-      (color-level-item "ALL TIME" format-% self-growth-precentage)
-      (color-level-item "YTD" format-% growth-year)
-      (color-level-item "MTD" format-% growth-month)]
      (asset-chart daily-values transactions)
      (performance-table performance)
      (growth-pie self-growth-amount contribution-growth-amount)
