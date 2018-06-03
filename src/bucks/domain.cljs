@@ -287,7 +287,6 @@
                                 (into {}))
         starting-units (if (> starting-units 0) starting-units 1000)
         starting-unit-price (/ (:value (first daily-values)) starting-units)
-        a (prn (->> transactions first :name))
         unitized-values
         (loop [result []
                values daily-values
@@ -307,10 +306,6 @@
                   entry (assoc current
                                :units current-units
                                :unit-price (if (= current-units units) current-unit-price unit-price))]
-              (when (or (not= current-units units) (not= current-unit-price unit-price))
-                (do
-                  (prn (str "u " current-units))
-                  (prn current-unit-price)))
               (recur
                (conj result entry)
                (rest values)
@@ -323,20 +318,42 @@
         today (last unitized-values)
         todays-unit-price (:unit-price today)
         todays-date (as-date today)
-        growth-since (fn [date current-price]
-                       (when-let [price (get-in unit-price-lookup [(time.coerce/to-long date) :unit-price])]
-                         (growth-percentage price current-price)))
-        growth-years-rolling (fn [y]
-                               (when-let [total
-                                          (growth-since (time/minus todays-date (time/years y))
-                                                        todays-unit-price)]
-                                 (/ total y)))]
-    {:all-time (growth-percentage (->> unitized-values first :unit-price) todays-unit-price)
-     :month (growth-since (time/first-day-of-the-month todays-date) todays-unit-price)
-     :ytd (growth-since (time/date-time (time/year todays-date)) todays-unit-price)
+        month (time/first-day-of-the-month todays-date)
+        growth-since (fn [start-date end-date]
+                       (let [start (get unit-price-lookup (time.coerce/to-long start-date))
+                             end (get unit-price-lookup (time.coerce/to-long end-date))]
+                         (when (and start end)
+                           {:performance (growth-percentage (:unit-price start) (:unit-price end))
+                            :overall (growth-percentage (:value start) (:value end))})))
+        growth-years-rolling (fn [y] ;https://www.investopedia.com/terms/a/annualized-total-return.asp
+                               (when (growth-since (time/minus todays-date (time/years y)) todays-date)
+                                 (loop [x y
+                                        end-date todays-date
+                                        result []
+                                        ]
+                                   (if (= x 0)
+                                     {:performance
+                                      (->> result
+                                           (map #(+ 1 (/ % 100)))
+                                           (reduce *)
+                                           (#(js/Math.pow % (/ 1 (count result))))
+                                           (#(- % 1))
+                                           (* 100))}
+                                     (let [start-date (time/minus end-date (time/years 1))
+                                           performance (:performance (growth-since start-date end-date))]
+                                       (recur (dec x)
+                                              start-date
+                                              (conj result performance)))))))]
+    {:all-time (growth-since (->> unitized-values first as-date) todays-date)
+     :month (growth-since month todays-date)
+     :last-month (growth-since (time/minus month (time/months 1)) month)
+     :ytd (growth-since (time/date-time (time/year todays-date)) todays-date)
      :years-1 (growth-years-rolling 1)
+     :years-2 (growth-years-rolling 2)
      :years-3 (growth-years-rolling 3)
+     :years-4 (growth-years-rolling 4)
      :years-5 (growth-years-rolling 5)
+     :years-7 (growth-years-rolling 7)
      :years-10 (growth-years-rolling 10)}))
 
 ;;;;; QUERIES

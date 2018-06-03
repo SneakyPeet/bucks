@@ -201,22 +201,32 @@
        :colors alternate-chart-colors}))))
 
 
-(defn performance-row [label value]
-  (if value
-    [:tr [:th.has-text-light label] [:td {:class (color-num value)} (format-% value )]]
-    [:tr [:td label] [:td "-"]]))
+(defn performance-row [label {:keys [performance overall]}]
+  (if performance
+    [:tr
+     [:th.has-text-light label]
+     [:td {:class (color-num performance)} (format-% performance)]
+     (if overall [:td {:class (color-num overall)} (format-% overall)] [:td])]
+    [:tr [:td label] [:td "-"] [:td "-"]]))
 
 
-(defn performance-table [{:keys [all-time month ytd years-1 years-3 years-5 years-10]}]
+(defn performance-table [{:keys [all-time month last-month ytd
+                                 years-1 years-2 years-3 years-4 years-5 years-7 years-10]}]
   [:table.table.is-narrow.is-fullwidth
+   [:thead [:tr [:th] [:th "Performance"] [:th "Incl. Transactions"]]]
    [:tbody
     (performance-row "All Time" all-time)
-    (performance-row "Month" month)
     (performance-row "YTD" ytd)
-    (performance-row "1 Year" years-1)
-    (performance-row "3 Years Annualised" years-3)
-    (performance-row "5 Years Annualised" years-5)
-    (performance-row "10 Years Annualised" years-10)]])
+    (performance-row "Month" month)
+    (when last-month (performance-row "Last Month" last-month))
+    [:tr [:td.has-text-centered {:col-span 3} "Annualized"]]
+    (when years-1 (performance-row "1 Year" years-1))
+    (when years-2 (performance-row "2 Year" years-2))
+    (when years-3 (performance-row "3 Year" years-3))
+    (when years-4 (performance-row "4 Year" years-4))
+    (when years-5 (performance-row "5 Year" years-5))
+    (when years-7 (performance-row "7 Year" years-7))
+    (when years-10 (performance-row "10 Year" years-10))]])
 
 ;;;; YEAR MODAL
 
