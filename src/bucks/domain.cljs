@@ -282,8 +282,11 @@
                                           (or (nil? data-type) (= :transaction data-type))))
                                 (group-by as-date-timestamp)
                                 (map (fn [[t v]]
-                                       [t {:amount (->> v (map :amount) (reduce +))
-                                           :units (->> v (map :units) (reduce +))}]))
+                                       (let [amount (->> v (map :amount) (reduce +))]
+                                         [t {:amount amount
+                                             :units (->> v (map :units) (reduce +))
+                                           ;;;this is a best effort assuming there will generally be only 1 transaction per day
+                                             :value-before (- (->> v first :value) amount)}])))
                                 (into {}))
         starting-units (if (> starting-units 0) starting-units 1000)
         starting-unit-price (/ (:value (first daily-values)) starting-units)
@@ -292,17 +295,22 @@
                values daily-values
                units starting-units
                unit-price starting-unit-price]
+
           (if (empty? values)
             (sort-by :timestamp result)
             (let [{:keys [value] :as current} (first values)
+                  transaction (get transaction-lookup (as-date-timestamp current))
+                  added-amount (get transaction :amount 0)
+                  value (get transaction :value-before value)
+                  current-unit-price (if (= 0 units) 0 (/ value units))
                   units-to-add
-                  (if-let [transaction (get transaction-lookup (as-date-timestamp current))]
+                  (if transaction
+                    #_(/ (:amount transaction) current-unit-price)
                     (if (= (:units transaction) 0)
-                      (/ (:amount transaction) unit-price)
+                      (/ (:amount transaction) current-unit-price)
                       (:units transaction))
                     0)
                   current-units (+ units units-to-add)
-                  current-unit-price (if (= 0 current-units) 0 (/ value current-units))
                   entry (assoc current
                                :units current-units
                                :unit-price (if (= current-units units) current-unit-price unit-price))]
