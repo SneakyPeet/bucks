@@ -567,18 +567,21 @@
 
 (defn years [years]
   [:div.columns.is-multiline.is-centered
-   (map-indexed
-    (fn [i [year {:keys [growth-year] :as d}]]
-      [:div.column.is-1.has-text-centered.asset-button
-       {:key i :on-click #(show-modal :year year)}
-       [:p.title.is-5.has-text-light year]
-       [:p.subtitle.is-6 {:class (color-num growth-year)} (format-% growth-year)]])
-    years)])
+   (->> years
+        (sort-by first)
+        reverse
+        (map-indexed
+         (fn [i [year {:keys [growth-year] :as d}]]
+           [:div.column.is-1.has-text-centered.asset-button
+            {:key i :on-click #(show-modal :year year)}
+            [:p.title.is-5.has-text-light year]
+            [:p.subtitle.is-6 {:class (color-num growth-year)} (format-% growth-year)]])))])
 
 
 (defn asset-groups [asset-groups]
   [:div.columns.is-multiline.is-centered
    (->> asset-groups
+        (filter (fn [[_ {:keys [value]}]] (not= 0 value)))
         (sort-by first)
         (map-indexed
          (fn [i [name {:keys [growth-year growth-all-time value self-growth-precentage] :as d}]]
@@ -1035,19 +1038,24 @@
 
 (defmethod render-modal :history [state]
   [:div.has-text-light
-   (history
+   #_(history
     "1.x"
     ["Todo Calculate RA Contributions"
      "Todo monthly transactions bar chart"
      "Todo Retirement goals chart"
      "Todo Fix year data"
-     "Todo add dividends"
-     "Todo unitize"
+     "Todo add dividends"]
+    [])
+   (history
+    "1.24"
+    ["Unitize assets for better performance tracking"
      "Add actual independecy trend line"
      "Fix Bug where todays values do not show"
      "Add Cash Asset Type"
      "Remove yearly trend lines to reduce noise"
-     "Improve WI Labels"]
+     "Improve WI Labels"
+     "Hide closed asset groups"
+     "Reverse years order"]
     [])
    (history
     "1.16"
