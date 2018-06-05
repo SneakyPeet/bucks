@@ -655,7 +655,7 @@
                      :self-growth-amount self-growth-amount)))))))
 
 
-(defn years [assets daily-salaries daily-wi year-goals]
+(defn years [assets daily-salaries daily-wi year-goals performance]
   (let [with-year #(assoc % :year (time/year (:cljs-date %)))
         assets (vals assets)
         salaries (group-by-year daily-salaries)
@@ -708,12 +708,14 @@
                                          :end end-g
                                          :expected-monthly (/ expected 12)
                                          :expected expected)))))]
+              (prn performance)
               [y (assoc d
                         :start start
                         :self-growth-percent self-growth-percent
                         :transaction-growth-percent transaction-growth-percent
                         :growth-months (year-growth-months start daily-values transactions)
-                        :goals goals)])))
+                        :goals goals
+                        :performance (get-in performance [:years y]))])))
          (into {}))))
 
 
@@ -925,16 +927,17 @@
                            (merge income-expense-wi))
         asset-groups (asset-groups net-assets)
         assets-per-person (assets-per-person net-assets)
-        years (years net-assets daily-salaries daily-wi year-goals)
+        performance (unitize-assets daily-asset-values (->> net-assets
+                                                            vals
+                                                            (map :transactions)
+                                                            (reduce into)))
+        years (years net-assets daily-salaries daily-wi year-goals performance)
         wi-goals (wi-goals coll birthday daily-wi)
         money-lifetimes (money-lifetimes current-values coll)
         tfsa-tracking (tfsa-tracking assets)
         money-health (money-health current-wi asset-groups income-expense)
         independence-years-tracking (independence-years-tracking income-expense daily-wi)
-        performance (unitize-assets daily-asset-values (->> net-assets
-                                                            vals
-                                                            (map :transactions)
-                                                            (reduce into)))
+
         ]
     {:birthday birthday
      :salaries salaries

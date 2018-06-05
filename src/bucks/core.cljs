@@ -215,9 +215,9 @@
 (defn performance-table [{:keys [all-time month last-month ytd years
                                  years-1 years-2 years-3 years-4 years-5 years-7 years-10]}]
   [:table.table.is-narrow.is-fullwidth
-   [:thead [:tr [:th] [:th "Performance"] [:th "Incl. Transactions"]]]
+   [:thead [:tr [:th] [:th "Performance"] [:th "Growth"]]]
    [:tbody
-    (performance-row "All Time" all-time)
+    (when all-time (performance-row "All Time" all-time))
     (performance-row "YTD" ytd)
     (performance-row "Month" month)
     (when last-month (performance-row "Last Month" last-month))
@@ -327,13 +327,15 @@
 (defmethod render-modal :year [{:keys [modal data]}]
   (let [year (:data modal)
         {:keys [daily-values goals start wi growth-months growth-year self-growth-percent
-                transactions end transaction-growth-percent transaction-total salary] :as data}
+                transactions end transaction-growth-percent transaction-total salary performance] :as data}
         (get-in data [:years year])]
+    (prn performance)
     (let [growth (- end start)]
       [:div
        [:h1.title.has-text-light.has-text-centered year]
        [:div.level
-        (color-level-item "YTD" format-% growth-year)
+        (color-level-item "PERFORMANCE" format-% (:performance performance))
+        (color-level-item "GROWTH" format-% (:overall performance))
         (color-level-item "WI" format-num wi)
         (color-level-item "SALARY" format-% salary)]
        (year-growth-chart year start goals daily-values)
@@ -391,10 +393,6 @@
      [:div.level
       (level-item "VALUE" format-num value)
       (level-item "CONTRIBUTIONS" format-num contribution-growth-amount)]
-     [:div.level
-      (color-level-item "ALL TIME" format-% self-growth-precentage)
-      (color-level-item "YTD" format-% growth-year)
-      (color-level-item "MTD" format-% growth-month)]
      (asset-chart daily-values transactions)
      (asset-group-item-pie assets)
      (performance-table performance)
