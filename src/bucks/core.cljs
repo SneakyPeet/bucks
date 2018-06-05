@@ -384,7 +384,7 @@
   (let [asset-group (:data modal)
         {:keys [daily-values asset-type growth-month value assets self-growth-precentage
                 growth-all-time growth-amount self-growth-amount growth-year
-                transactions contribution-growth-amount]}
+                transactions contribution-growth-amount performance]}
         (get-in data [:asset-groups asset-group])]
     [:div
      [:h1.title.has-text-light.has-text-centered asset-group]
@@ -397,6 +397,7 @@
       (color-level-item "MTD" format-% growth-month)]
      (asset-chart daily-values transactions)
      (asset-group-item-pie assets)
+     (performance-table performance)
      (growth-pie self-growth-amount contribution-growth-amount)]))
 
 

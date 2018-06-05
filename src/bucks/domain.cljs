@@ -374,6 +374,29 @@
      :years-10 (growth-years-rolling 10)
      :years years}))
 
+
+(defn unitize-assets [daily-values transactions]
+  (let [midnight (comp time.coerce/to-long :cljs-date)
+        first-day (midnight (first daily-values))
+        daily-values-lookup (group-by midnight daily-values)
+        transactions (->> transactions
+                          (group-by midnight)
+                          (#(dissoc % first-day))
+                          vals
+                          (map
+                           (fn [coll]
+                             (let [base (first coll)
+                                   day (-> base :cljs-date (time/minus (time/days 1)) time.coerce/to-long)
+                                   amount (->> coll (map :amount) (reduce +))
+                                   value (get-in daily-values-lookup [day 0 :value])]
+                               (assoc base
+                                      :amount amount
+                                      :value (+ value amount)
+                                      :units 0
+                                      :data-type :transaction))))
+                          (sort-by :timestamp))]
+    (unitize nil daily-values transactions)))
+
 ;;;;; QUERIES
 
 (defn birthday [coll]
@@ -585,7 +608,8 @@
                 contribution (contribution-amount transactions)
                 growth (growth-amount daily-values)
                 self-growth (- value contribution)
-                self-growth-precentage (growth-percentage contribution value)]
+                self-growth-precentage (growth-percentage contribution value)
+                performance (unitize-assets daily-values transactions)]
             [t {:asset-type t
                 :assets assets
                 :daily-values daily-values
@@ -597,7 +621,8 @@
                 :self-growth-amount self-growth
                 :self-growth-precentage self-growth-precentage
                 :value value
-                :transactions transactions}])))
+                :transactions transactions
+                :performance performance}])))
     (into {})))
 
 
