@@ -361,8 +361,7 @@
                             [year {:performance (growth-percentage (:unit-price start) (:unit-price end))
                                    :overall (growth-percentage (:value start) (:value end))}])))
                    (into {}))]
-    {:all-time (growth-since (->> unitized-values first as-date) todays-date)
-     :month (growth-since month todays-date)
+    {:month (growth-since month todays-date)
      :last-month (growth-since (time/minus month (time/months 1)) month)
      :ytd (growth-since (time/date-time (time/year todays-date)) todays-date)
      :years-1 (growth-years-rolling 1)
@@ -932,6 +931,10 @@
         tfsa-tracking (tfsa-tracking assets)
         money-health (money-health current-wi asset-groups income-expense)
         independence-years-tracking (independence-years-tracking income-expense daily-wi)
+        performance (unitize-assets daily-asset-values (->> net-assets
+                                                            vals
+                                                            (map :transactions)
+                                                            (reduce into)))
         ]
     {:birthday birthday
      :salaries salaries
@@ -947,4 +950,5 @@
      :tfsa-tracking tfsa-tracking
      :money-health money-health
      :monthly-transactions monthly-transactions
-     :independence-years-tracking independence-years-tracking}))
+     :independence-years-tracking independence-years-tracking
+     :performance performance}))

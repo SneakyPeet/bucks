@@ -828,7 +828,7 @@
                          [(end-date first-entry) nil 0 nil]
                          [(:date last-entry) nil nil (:years-to-independence last-entry)]
                          [(end-date last-entry) nil nil 0]]))
-        headers ["Date" "Years" "Start Trajectory" "Actual Trajectory"]]
+        headers ["Date" "Actual" "Start Trajectory" "Actual Trajectory"]]
     [:div
      (chart
       (str "independence-years-tracking-chart" type)
@@ -845,6 +845,12 @@
      (note "uses an avg window of " domain/lookback-in-months " periods around the entries to compensate for outliers")]))
 
 
+(defn performance-info-box-col [label {:keys [performance overall]}]
+  (col 2
+       [:p.heading.has-text-centered label]
+       (info-box "performance" (format-% performance) (color-num performance))
+       (info-box "growth" (format-% overall) (color-num overall))))
+
 (defn seperator
   ([] [:br])
   ([text]
@@ -855,13 +861,16 @@
 
 
 (defmethod render-page :main [{:keys [data modal]}]
-  (let [{:keys [wi asset-value growth-month growth-year]} (:current-values data)]
+  (let [{:keys [wi asset-value growth-month growth-year]} (:current-values data)
+        {:keys [month last-month ytd]} (:performance data)]
     [:div.columns.is-multiline.is-centered
      (col 2 (info-box "WEALTH INDEX" (format-num wi) (color-wi-num wi)))
      (col 2 (info-box "NET" (format-num asset-value)))
-     (col 2 (info-box "MONTH TO DATE" (format-% growth-month) (color-num growth-month)))
-     (col 2 (info-box "YEAR TO DATE" (format-% growth-year) (color-num growth-year)))
      (col 2 (info-box "EM FUND MONTHS" (format-num (get-in data [:money-health :emergency-fund-ratio]))))
+     (performance-info-box-col "LAST MONTH" last-month)
+     (performance-info-box-col "THIS MONTH" month)
+     (performance-info-box-col "YTD" ytd)
+
      (col 4 (wealth-guage (:current-values data)))
      (col 4 (wi-chart (:daily-wi data) (:wi-goals data)))
      (col 4 (growth-chart (:daily-wi data)))
