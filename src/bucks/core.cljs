@@ -1038,7 +1038,7 @@
 
 (defmethod render-modal :history [state]
   [:div.has-text-light
-   #_(history
+   (history
     "1.x"
     ["Todo Calculate RA Contributions"
      "Todo monthly transactions bar chart"
@@ -1048,6 +1048,7 @@
     [])
    (history
     "1.24"
+    "/bucks-v1.24"
     ["Unitize assets for better performance tracking"
      "Add actual independecy trend line"
      "Fix Bug where todays values do not show"
