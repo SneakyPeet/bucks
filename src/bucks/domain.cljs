@@ -361,7 +361,8 @@
                             [year {:performance (growth-percentage (:unit-price start) (:unit-price end))
                                    :overall (growth-percentage (:value start) (:value end))}])))
                    (into {}))]
-    {:month (growth-since month todays-date)
+    {:all-time (growth-since (->> unitized-values first as-date) todays-date)
+     :month (growth-since month todays-date)
      :last-month (growth-since (time/minus month (time/months 1)) month)
      :ytd (growth-since (time/date-time (time/year todays-date)) todays-date)
      :years-1 (growth-years-rolling 1)
@@ -708,7 +709,6 @@
                                          :end end-g
                                          :expected-monthly (/ expected 12)
                                          :expected expected)))))]
-              (prn performance)
               [y (assoc d
                         :start start
                         :self-growth-percent self-growth-percent
