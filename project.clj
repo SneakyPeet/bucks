@@ -12,6 +12,8 @@
                  [org.clojure/clojurescript "1.9.946"]
                  [org.clojure/core.async  "0.3.443"]
                  [cljsjs/filesaverjs "1.3.3-0"]
+                 [cljsjs/datatables.net "1.10.16-0"]
+                 [cljsjs/jquery "3.2.1-0"]
                  [rum "0.11.0"]
                  [testdouble/clojurescript.csv "0.3.0"]
                  [com.andrewmcveigh/cljs-time "0.5.2"]]

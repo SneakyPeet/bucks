@@ -6,7 +6,8 @@
             [cljs-time.format :as time.format]
             [clojure.string :as string]
             [cljs-time.core :as time]
-            [cljs-time.coerce :as time.coerce]))
+            [cljs-time.coerce :as time.coerce]
+            [cljsjs.datatables.net]))
 
 (enable-console-print!)
 
@@ -329,7 +330,6 @@
         {:keys [daily-values goals start wi growth-months growth-year self-growth-percent
                 transactions end transaction-growth-percent transaction-total salary performance] :as data}
         (get-in data [:years year])]
-    (prn performance)
     (let [growth (- end start)]
       [:div
        [:h1.title.has-text-light.has-text-centered year]
@@ -852,6 +852,36 @@
        (info-box "performance" (format-% performance) (color-num performance))
        (info-box "growth" (format-% overall) (color-num overall))))
 
+
+(rum/defc performance-comparison-table < rum/static
+  {:did-mount (fn [state]
+                (.DataTable
+                 (js/$ (str "#" (-> state :rum/args first)))
+                 (clj->js {"paging" false
+                           "info" false
+                           "order" [[4 "desc"]]
+                           }))
+                state)}
+  [table-key label assets]
+  [:table.table.is-narrow.is-fullwidth {:id table-key}
+   [:thead
+    [:tr {:style {:cursor "ns-resize"}}
+     [:th "Asset"] [:th "Type"] [:th "This Month"] [:th "Last Month"] [:th "YTD"]
+     [:th "1 Y"] [:th "2 Y"] [:th "3 Y"] [:th "4 Y"] [:th "5 Y"] [:th "7 Y"] [:th "10 Y"]]]
+   [:tbody
+    (->> assets
+         vals
+         (map (juxt :name :asset-type :performance))
+         (map-indexed
+          (fn [i [n at {:keys [month last-month ytd years-1 years-2 years-3 years-4 years-5 years-7 years-10] :as a}]]
+            (let [p (fn [x]
+                      (if (nil? x)
+                        [:td ""]
+                          [:td {:class (color-num (:performance x))} (format-% (:performance x))]))]
+              [:tr {:key i}
+               [:td n] [:td at](p month) (p last-month) (p ytd)
+               (p years-1) (p years-2) (p years-3) (p years-4) (p years-5) (p years-7) (p years-10)]))))]])
+
 (defn seperator
   ([] [:br])
   ([text]
@@ -908,6 +938,8 @@
      (col 12 (assets (->> data :assets vals (filter (comp not :closed?)))))
      (seperator "Closed Assets")
      (col 12 (assets (->> data :assets vals (filter :closed?))))
+     (seperator "Performance")
+     (col 12 (performance-comparison-table "asset-p" "Asset Performance"(:assets data)))
      (seperator "drag graphs to zoom and double click to reset")
      ]))
 
@@ -1040,11 +1072,13 @@
   [:div.has-text-light
    (history
     "1.x"
-    ["Todo Calculate RA Contributions"
+    ["Todo Unitization should look from 1 jan to 1 jan (not 1 jan to 31 dec)"
+     "Todo Calculate RA Contributions"
      "Todo monthly transactions bar chart"
      "Todo Retirement goals chart"
      "Todo Fix year data"
-     "Todo add dividends"]
+     "Todo add dividends"
+     "Add all time performance and growth to assets"]
     [])
    (history
     "1.24"
