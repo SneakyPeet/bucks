@@ -49,3 +49,16 @@ html {
 .space {
   margin: 20px 0;
 }
+
+/* Datatables */
+
+.dataTables_wrapper .dataTables_filter input {
+  margin-left: 5px;
+  background-color: #303030;
+  font-size: 16px;
+  border: none;
+  border-bottom: solid 1px #888686;
+  color: white;
+  padding-left: 5px;
+  padding-bottom: 3px;
+}

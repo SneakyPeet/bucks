@@ -861,6 +861,7 @@
                  (clj->js {"paging" false
                            "info" false
                            "order" [[4 "desc"]]
+                           "language" {"searchPlaceholder" "by asset or type"}
                            }))
                 state)}
   [table-key label assets]
