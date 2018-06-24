@@ -34,7 +34,8 @@
      "Todo Fix year data"
      "Todo add dividends"
      "Add Asset Comparison Chart"
-     "Add all time performance and growth to assets"]
+     "Add all time performance and growth to assets"
+     "Add Asset Types for Property and Business"]
     [])
    (history
     "1.24"
