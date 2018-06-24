@@ -866,20 +866,20 @@
   [:table.table.is-narrow.is-fullwidth {:id table-key}
    [:thead
     [:tr {:style {:cursor "ns-resize"}}
-     [:th "Asset"] [:th "Type"] [:th "This Month"] [:th "Last Month"] [:th "YTD"]
+     [:th "Asset"] [:th "Type"] [:th "This Month"] [:th "Last Month"] [:th "YTD"] [:th "All Time"]
      [:th "1 Y"] [:th "2 Y"] [:th "3 Y"] [:th "4 Y"] [:th "5 Y"] [:th "7 Y"] [:th "10 Y"]]]
    [:tbody
     (->> assets
          vals
          (map (juxt :name :asset-type :performance))
          (map-indexed
-          (fn [i [n at {:keys [month last-month ytd years-1 years-2 years-3 years-4 years-5 years-7 years-10] :as a}]]
+          (fn [i [n at {:keys [month last-month ytd all-time years-1 years-2 years-3 years-4 years-5 years-7 years-10] :as a}]]
             (let [p (fn [x]
                       (if (nil? x)
                         [:td ""]
                           [:td {:class (color-num (:performance x))} (format-% (:performance x))]))]
               [:tr {:key i}
-               [:td n] [:td at](p month) (p last-month) (p ytd)
+               [:td n] [:td at](p month) (p last-month) (p ytd) (p all-time)
                (p years-1) (p years-2) (p years-3) (p years-4) (p years-5) (p years-7) (p years-10)]))))]])
 
 (defn seperator
@@ -1078,6 +1078,7 @@
      "Todo Retirement goals chart"
      "Todo Fix year data"
      "Todo add dividends"
+     "Add Asset Comparison Chart"
      "Add all time performance and growth to assets"]
     [])
    (history
