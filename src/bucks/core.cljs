@@ -585,13 +585,11 @@
         (filter (fn [[_ {:keys [value]}]] (not= 0 value)))
         (sort-by first)
         (map-indexed
-         (fn [i [name {:keys [growth-year growth-all-time value self-growth-precentage] :as d}]]
+         (fn [i [name {:keys [growth-year growth-all-time value self-growth-precentage performance] :as d}]]
            [:div.column.is-2.has-text-centered.asset-button
             {:key i :on-click #(show-modal :asset-group name)}
-            [:p.heading.has-text-light name]
+            [:p.heading.has-text-light {:class (color-num (get-in performance [:ytd :performance]))} name]
             (when-not (= 0 value) [:p.heading (format-num value)])
-            [:p.heading {:class (color-num growth-year)} (format-% growth-year) " ytd"]
-            (when-not (= 0 value) [:p.heading {:class (color-num self-growth-precentage)} (format-% self-growth-precentage)])
             ])))])
 
 
@@ -677,14 +675,12 @@
    (->> assets
         (sort-by :asset-type)
         (map-indexed
-         (fn [i {:keys [name asset-type growth-year growth-all-time value self-growth-precentage] :as d}]
+         (fn [i {:keys [name asset-type value performance] :as d}]
            [:div.column.is-2.has-text-centered.asset-button
             {:key i :on-click #(show-modal :asset name)}
-            [:p.heading.has-text-light name]
+            [:p.heading.has-text-light {:class (color-num (get-in performance [:ytd :performance]))} name]
             [:p.heading asset-type]
             (when-not (= 0 value) [:p.heading (format-num value)])
-            (when-not (= 0 value) [:p.heading {:class (color-num growth-year)} (format-% growth-year) " ytd"])
-            (when-not (= 0 value) [:p.heading {:class (color-num self-growth-precentage)} (format-% self-growth-precentage)])
             ])))])
 
 
