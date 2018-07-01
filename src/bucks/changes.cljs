@@ -33,7 +33,12 @@
      "Todo Retirement goals chart"
      "Todo Fix year data"
      "Todo add dividends"
-     "Add Asset/Asset-Group Comparison Table"
+     "Shrink JS"]
+    [])
+   (history
+    "1.29"
+    "/bucks-v129"
+    ["Add Asset/Asset-Group Comparison Table"
      "Add all time performance and growth to assets"
      "Add Asset Types for Property and Business"
      "Hide Confusing Asset/Asset Group %"
