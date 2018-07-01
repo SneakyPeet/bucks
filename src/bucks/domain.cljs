@@ -327,8 +327,10 @@
         todays-unit-price (:unit-price today)
         todays-date (as-date today)
         month (time/first-day-of-the-month todays-date)
-        growth-since (fn [start-date end-date]
+        start-date (->> daily-values first :cljs-date)
+        growth-since (fn [start-date end-date & [alternate-start]]
                        (let [start (get unit-price-lookup (time.coerce/to-long start-date))
+                             start (or start (get unit-price-lookup (time.coerce/to-long alternate-start)))
                              end (get unit-price-lookup (time.coerce/to-long end-date))]
                          (when (and start end)
                            {:performance (growth-percentage (:unit-price start) (:unit-price end))
@@ -364,7 +366,7 @@
     {:all-time (growth-since (->> unitized-values first as-date) todays-date)
      :month (growth-since month todays-date)
      :last-month (growth-since (time/minus month (time/months 1)) month)
-     :ytd (growth-since (time/date-time (time/year todays-date)) todays-date)
+     :ytd (growth-since (time/date-time (time/year todays-date)) todays-date start-date)
      :years-1 (growth-years-rolling 1)
      :years-2 (growth-years-rolling 2)
      :years-3 (growth-years-rolling 3)

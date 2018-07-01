@@ -36,7 +36,8 @@
      "Add Asset Comparison Chart"
      "Add all time performance and growth to assets"
      "Add Asset Types for Property and Business"
-     "Hide Confusing Asset/Asset Group %"]
+     "Hide Confusing Asset/Asset Group %"
+     "Show YTD correctly for assets started in current year"]
     [])
    (history
     "1.24"
