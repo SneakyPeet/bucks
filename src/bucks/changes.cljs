@@ -33,7 +33,7 @@
      "Todo Retirement goals chart"
      "Todo Fix year data"
      "Todo add dividends"
-     "Add Asset Comparison Chart"
+     "Add Asset/Asset-Group Comparison Table"
      "Add all time performance and growth to assets"
      "Add Asset Types for Property and Business"
      "Hide Confusing Asset/Asset Group %"

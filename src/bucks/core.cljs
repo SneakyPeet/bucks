@@ -868,7 +868,6 @@
      [:th "1 Y"] [:th "2 Y"] [:th "3 Y"] [:th "4 Y"] [:th "5 Y"] [:th "7 Y"] [:th "10 Y"]]]
    [:tbody
     (->> assets
-         vals
          (map (juxt :name :asset-type :performance))
          (map-indexed
           (fn [i [n at {:keys [month last-month ytd all-time years-1 years-2 years-3 years-4 years-5 years-7 years-10] :as a}]]
@@ -937,7 +936,14 @@
      (seperator "Closed Assets")
      (col 12 (assets (->> data :assets vals (filter :closed?))))
      (seperator "Performance")
-     (col 12 (performance-comparison-table "asset-p" "Asset Performance"(:assets data)))
+     (col 12 (performance-comparison-table "asset-group-p" "Asset Groups Performance"
+                                           (->> (:asset-groups data)
+                                                vals
+                                                (filter #(> (:value %) 0)))))
+     (col 12 (performance-comparison-table "asset-p" "Asset Performance"
+                                           (->> (:assets data)
+                                                vals
+                                                (filter (comp not :closed?)))))
      (seperator "drag graphs to zoom and double click to reset")
      ]))
 
