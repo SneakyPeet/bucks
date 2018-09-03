@@ -25,7 +25,7 @@
 
 (defn render-history []
   [:div.has-text-light
-   (history
+   #_(history
     "1.x"
     ["Todo Unitization should look from 1 jan to 1 jan (not 1 jan to 31 dec)"
      "Todo Calculate RA Contributions"
@@ -37,12 +37,12 @@
     [])
    (history
     "1.30"
-    "/bucks-v130"
+    ;"/bucks-v130"
     ["Allow Dividend rows"]
     [])
    (history
     "1.29"
-    "/bucks-v129"
+    "./bucks-v129"
     ["Add Asset/Asset-Group Comparison Table"
      "Add all time performance and growth to assets"
      "Add Asset Types for Property and Business"
@@ -51,7 +51,7 @@
     [])
    (history
     "1.24"
-    "/bucks-v1.24"
+    "./bucks-v124"
     ["Unitize assets for better performance tracking"
      "Add actual independecy trend line"
      "Fix Bug where todays values do not show"
@@ -63,7 +63,7 @@
     [])
    (history
     "1.16"
-    "/bucks-v1.16"
+    "./bucks-v116"
     ["Added Asset Type Distributions over time graphs"
      "Calculate Average Savings Rate"
      "Graph Expected and Actual Savings Rate over time"
@@ -76,7 +76,7 @@
     [])
    (history
     "1.7"
-    "/bucks-v1.7"
+    "./bucks-v1.7"
     ["Track TFSA seperately from asset types. To view a TFSA asset in the TFSA section set 'is-tfsa' to 'y'"
      "Allow Multiple Salaries"
      "Added 'Actively Managed' asset type"
@@ -85,15 +85,10 @@
      "'salaries' requires an 'owner' field. This is the first field after 'salaries'"])
    (history
     "1.3"
-    "/bucks-v1.3"
+    "./bucks-v1.3"
     ["Tax Free Savings Reporting"
      "Monthly Income and Expense Tracking. Use the 'income-expense' row."
      "Retirement Numbers based on the 4% rule. Requires monthly income and expense."
      "'Emergency Fund' asset type. Used to calculate 'MONTHS COVERED BY EMERGENCY FUND'"
      "Wealth Distribution by owne"]
-    ["'open-asset' requires an 'owner' field to be added to track TFSA's"])
-   (history
-    "1"
-    "/bucks-v1"
-    ["Initial Release"]
-    [])])
+    ["'open-asset' requires an 'owner' field to be added to track TFSA's"])])
