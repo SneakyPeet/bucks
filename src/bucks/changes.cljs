@@ -33,7 +33,12 @@
      "Todo Retirement goals chart"
      "Todo Fix year data"
      "Todo add dividends"
-     "Shrink JS"]
+     "Todo Shrink JS"]
+    [])
+   (history
+    "1.30"
+    "/bucks-v130"
+    ["Allow Dividend rows"]
     [])
    (history
     "1.29"
