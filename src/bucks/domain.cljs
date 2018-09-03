@@ -98,6 +98,9 @@
    ["value"
     [:d/name :d/year :d/month :d/day :d/value]
     "The Value of an asset at a certain point in time. Used for tracking asset growth ideally on a monthly or weekly basis. Name is the Asset Name. Value is the value of the asset at that point in time."]
+   ["dividends"
+    [:d/name :d/year :d/month :d/day :d/amount]
+    "Used for tracking dividends that are paid into a seperate cash account. These values are only used for performance stats."]
    ["wi-goal"
     [:d/wealth-index :d/age]
     "A goal wealth index to reach at an age"]
@@ -492,7 +495,7 @@
 
 
 (defn asset [asset-data]
-  (let [{:keys [open-asset transaction value close-asset]}
+  (let [{:keys [open-asset transaction value close-asset dividends]}
         (group-by :data-type asset-data)
         closed? (not (empty? close-asset))
         details (first open-asset)
@@ -518,6 +521,7 @@
         value (:value (last daily-values))
         self-growth (- value contribution)
         self-growth-precentage (growth-percentage contribution value)]
+    (prn dividends)
     (-> details
         timestamped
         (update :include-in-net #(= yes %))
@@ -540,7 +544,7 @@
 
 (defn assets [coll]
   (->> coll
-       (filter (types-of-f? :open-asset :transaction :value :close-asset))
+       (filter (types-of-f? :open-asset :transaction :value :close-asset :dividends))
        (group-by :name)
        (map (fn [[k a]]
               [k (asset a)]))
